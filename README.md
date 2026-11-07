@@ -1,72 +1,158 @@
-# Organizer 2.1
+# Organizer
 
-Organizer is a Windows-friendly file sorting and directory cleanup tool written in Python. It can sort files in a folder into destinations based on file type, name, topic, or custom rules. The distribution also includes optional Windows batch scripts for setup and folder-rule management.
+Organizer is a Windows utility that automatically sorts files in your Downloads and other folders into cleaner, more useful destinations. It helps you keep your workspace organized without manually moving files one by one.
 
-## Get started
+Built in Python and designed for everyday Windows use, Organizer can:
 
-1. Download and extract [`Organizer_2.1.zip`](Organizer_2.1.zip) to a permanent location, such as `D:\Organizer`. Avoid moving the folder after setup.
-2. Make sure Python 3 is installed and available on your `PATH`.
-3. Run `install.bat` from the extracted folder. It previews the proposed Downloads-folder organization before making changes, then offers optional automatic scheduling and a right-click menu entry. Administrator rights are not required.
+- sort new downloads into categories like Documents, PDFs, Installers, Code, and More
+- leave files still being downloaded alone until they settle
+- organize folders on demand from the right-click menu or CLI
+- support custom project folders so related files stay together
+- keep undo history so you can roll back recent runs
 
-The repository also includes `manage_folders.py` and `folders.bat` for managing custom folder rules. The complete application scripts and Windows setup files are included in the ZIP distribution.
+## Why Organizer?
 
-## Organize files
+A cluttered Downloads folder is one of the most common digital headaches. Organizer gives you a repeatable way to keep your files tidy by applying rules automatically and consistently.
 
-From Command Prompt or PowerShell, change to the folder you want to organize and run the script from the extracted Organizer folder:
+Instead of manually sorting everything, you can:
+
+- preview changes before moving files
+- set up automatic organization every 30 minutes
+- create custom folders for a specific project or file group
+- define your own naming and file-type rules
+
+## Features
+
+- Automatic sorting for Windows folders
+- Safe preview mode before any changes happen
+- Skip logic for files modified recently, so in-progress downloads are protected
+- Right-click integration for quick folder organization
+- Custom folder rules for project-specific organization
+- Undo support with saved history
+- Optional topic-based organization rules
+
+## Quick start
+
+1. Download and extract `Organizer_2.1.zip` to a permanent location such as `D:\Organizer`.
+2. Open the extracted folder.
+3. Double-click `install.bat`.
+4. Review the preview of how your Downloads folder would be organized.
+5. Choose whether to enable:
+   - automatic organization every 30 minutes
+   - "Organize this folder" in the right-click menu
+
+No administrator rights are required.
+
+## Daily use
+
+### Automatic organization
+
+After setup, new downloads are sorted approximately every 30 minutes. Files changed in the last 30 seconds are left alone, preventing incomplete downloads from being moved.
+
+### Right-click menu
+
+Right-click a folder or an empty space inside a folder and choose one of the Organizer options:
+
+- Organize this folder
+- Preview organizing (no changes)
+
+On Windows 11, these may appear under Show more options.
+
+### Command line
+
+From a terminal, you can run:
 
 ```bat
-python D:\Organizer\organizer.py --dry-run
-python D:\Organizer\organizer.py
-python D:\Organizer\organizer.py --undo
+python organizer.py --dry-run
+python organizer.py
+python organizer.py --undo
 ```
 
-- `--dry-run` previews the proposed moves without changing files.
-- Running without an option organizes the current folder.
-- `--undo` reverses the most recent organization run for that folder.
+- `--dry-run` shows what would happen without making any changes
+- running without flags organizes the current folder
+- `--undo` reverses the last organize action for that folder
 
-You can also right-click a folder, or empty space inside it, and choose **Organize this folder** or **Preview organizing (no changes)**. On Windows 11, these options may appear under **Show more options**.
+## Custom project folders
 
-When automatic organization is enabled, Downloads is checked every 30 minutes. Files changed within the last 30 seconds are skipped so files still downloading are left alone.
+Organizer 2.1 adds support for your own folders for files that belong to a project or a specific category.
 
-## Create custom project folders
+Example: keep all TempMonitor-related files together.
 
-Custom rules let you route files for a particular project to one destination before the built-in categories are considered. For example, `README.md`, `build.bat`, `config.xml`, and names containing `tempmonitor` can all be sent to `Projects\TempMonitor`.
+Double-click `folders.bat`, then choose:
 
-Double-click `folders.bat` and select **2) Add a folder for specific files**, or use the command line:
+- `2) Add a folder for specific files`
 
-```bat
-python manage_folders.py add TempMonitor --files README.md build.bat config.xml tempmonitor
+When prompted, enter values like:
+
+```text
+name:   TempMonitor
+files:  README.md, build.bat, config.xml, tempmonitor
+types:  leave empty
+where:  press Enter for Projects\TempMonitor
 ```
 
-By default, the destination is `Projects/TempMonitor` inside the folder being organized. Supply a custom destination with `--dest`:
+This causes those files to go only to that folder instead of the standard categories such as PDF, Installers, Code, and so on.
 
-```bat
-python manage_folders.py add TempMonitor --files tempmonitor --types .exe .bat --dest "D:\Projects\TempMonitor"
-```
+Custom rules are checked before built-in organizer rules, so your own folders win.
 
-Matching rules:
+### Matching behavior
 
-- Names with a file extension, such as `README.md`, match that exact filename.
-- A plain word, such as `tempmonitor`, matches names containing that word.
-- Wildcards are supported, such as `setup*.exe`.
-- `--types` restricts matches to the listed extensions. When used with `--files`, a file must match both.
-- Custom folders are checked before built-in rules. If a custom rule uses only `--types`, all files with those extensions are routed there.
+- names with a dot, such as `README.md`, match that exact file name
+- plain words, such as `tempmonitor`, match any file whose name contains that word
+- wildcards are supported, for example `setup*.exe`
+- `--types` can limit matching to file extensions such as `.exe` or `.bat`
+- if both `--files` and `--types` are used, a file must match both conditions
 
-The interactive menu also lets you list folders, add files to an existing rule, remove a rule, turn one off or on, and test where filenames would be routed.
+The built-in interactive menu also lets you:
+
+- list all folders
+- add more file patterns to an existing rule
+- remove a custom folder
+- turn a rule on or off
+- test where a file would go before running organization
 
 ## Configuration and history
 
-- `organizer_config.json` stores your folder rules, topics, and ignore list. It is created from the built-in defaults when needed.
-- `organizer_config.json.bak` is a backup made before configuration changes.
-- `history/` stores undo history and `organizer.log`, which records runs.
-- Topic rules map a folder name to words in filenames. For example, a `RTOS` topic matching `rtos` and `freertos` can sort documents under `Documents/PDF/RTOS`.
+Organizer stores its settings and history in the folder where it is installed:
 
-Keep your configuration and `history/` folder when upgrading. Organizer does not update itself from the internet; extract a newer version over the old one instead.
+- `organizer_config.json` — your folder rules, topics, and ignore list
+- `organizer_config.json.bak` — backup created before configuration changes
+- `history/` — undo history and organizer logs
 
-## Uninstall
+You can define custom topics in the config, for example:
 
-Run `uninstall.bat` from the extracted application folder. Your files, configuration, and history are left in place. If you move the Organizer folder or reinstall Python, run `install.bat` again to refresh the setup.
+```json
+"RTOS": ["rtos", "freertos"]
+```
+
+This allows documents to be sorted into subfolders like `Documents\PDF\RTOS`.
+
+## Updating and reinstalling
+
+Organizer does not update itself from the internet. To upgrade:
+
+1. download the new version
+2. unzip it over the old folder
+3. keep your existing `organizer_config.json` and `history/` folder
+
+If you move the Organizer folder or reinstall Python, run `install.bat` again.
+
+## Remove Organizer
+
+Double-click `uninstall.bat`.
+
+Your files, rules, and history remain in place. Organizing will simply stop being set up on your system until you run the installer again.
 
 ## License
 
-Organizer is distributed under the [MIT License](LICENSE).
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
+
+## Repository structure
+
+- `organizer.py` — main organizer logic
+- `manage_folders.py` — custom folder manager
+- `install.bat` — one-time setup for automatic scheduling and context menu
+- `uninstall.bat` — remove Organizer integration without deleting your files
+- `folders.bat` — quick access to custom project folder management
+- `organizer_config.json` — user configuration
+- `history/` — undo and log data
