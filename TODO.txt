@@ -1,0 +1,47 @@
+ORGANIZER - TODO / IDEAS LIST
+=============================
+(Nothing here is built yet. Add new ideas at the bottom.)
+
+IDEA 1 - Scan a whole folder or drive, then organize by extension   [from you]
+  - The project scans a folder (or a whole drive) first.
+  - For every extension it finds, it makes a folder for it. If there is no folder/rule for an
+    extension yet, it creates a new folder automatically under that extension's name.
+  - Today: files with no rule go to one "Other" folder. Idea: "Other\EXT" per extension instead.
+  >>> DONE in 2.6: a file with no rule now goes to Other\<EXT> automatically (folders.bat option 13).
+      Still to do from this idea: the scan of a whole drive (report first).
+
+IDEA 2 - Keep programs working: bat/exe files must stay with their files   [from you]
+  - Several .bat files, each needs its own corresponding files. Keep each bat together with the
+    files it needs so it still runs (put them in one folder per bat / program).
+  - Same for .exe: a game whose files are scattered over a drive stops working if everything is
+    sorted by extension. Organizing must NOT break installed programs and games.
+
+OPEN PROBLEM (needs a decision before building)
+  How does Organizer know which bat/exe belongs with which files?
+
+PROPOSED APPROACH (my notes, to discuss)
+  1. Never take an app apart. Treat a folder that looks like a program/game as ONE unit and leave it
+     whole (already done for code projects, venvs and node_modules). Add markers for games/apps:
+     exe + dll + data/pak/assets folders, unins000.exe, steam_appid.txt, UnityPlayer.dll, etc.
+  2. Only LOOSE files get sorted. Never touch system or program locations: Windows, Program Files,
+     ProgramData, AppData, Steam/Epic/GOG libraries.
+  3. A drive scan starts REPORT-ONLY: it shows what it found and what it would do (a plan). Nothing
+     moves until you approve. Undo already exists for anything that does move.
+  4. Bat files: read the .bat and find the files it refers to (same folder, relative paths, %~dp0).
+     Bat + the files it needs = one bundle, kept together in one folder. A bat that refers to nothing
+     can be sorted on its own. Unsure -> leave it where it is and list it for you to decide.
+  5. Extensions without a rule: create "Other\<EXT>" automatically (only when there are N+ files, so
+     one stray file does not make a folder).
+  6. A "protected" list in the settings (folders/programs never to touch) that you can edit.
+
+QUESTIONS FOR YOU
+  - Should a drive scan ever move files by itself, or always report first? (suggested: report first)
+  - Where do your games/programs usually live (C:\Games, Steam, D:\...)?
+  - Should "one folder per bat file" be automatic, or only when you approve it?
+
+SUGGESTED ORDER
+  1) Report-only scan of a folder/drive  2) Program/game protection  3) Auto folders per extension (DONE 2.6)
+  4) Bat/exe bundles
+
+NEW IDEAS (add below)
+  -

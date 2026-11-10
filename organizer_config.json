@@ -1,0 +1,415 @@
+{
+  "source": ".",
+  "recursive": false,
+  "min_age_seconds": 30,
+  "schedule_minutes": 30,
+  "subfolders": [],
+  "topics": {
+    "RTOS": [
+      "rtos",
+      "freertos",
+      "zephyr"
+    ],
+    "IoT": [
+      "iot",
+      "mqtt",
+      "internet of things",
+      "esp32"
+    ],
+    "ARM": [
+      "arm",
+      "cortex",
+      "thumb",
+      "stm32"
+    ],
+    "RISC-V": [
+      "risc v",
+      "riscv",
+      "risc"
+    ],
+    "Microcontrollers": [
+      "microcontroller",
+      "8051",
+      "avr",
+      "atmega"
+    ],
+    "Resume": [
+      "resume",
+      "cv",
+      "curriculum vitae"
+    ]
+  },
+  "topic_default": null,
+  "watch": [],
+  "folders": {
+    "enabled": true,
+    "dest": "Folders",
+    "min_age_hours": 24,
+    "skip_if_contains": [
+      "pyvenv.cfg",
+      "venv",
+      ".venv",
+      "node_modules"
+    ],
+    "ignore": [],
+    "unmatched": null,
+    "rules": [
+      {
+        "name": "Projects",
+        "dest": "Folders/Projects",
+        "contains": [
+          ".git",
+          "package.json",
+          "pyproject.toml",
+          "platformio.ini",
+          "CMakeLists.txt",
+          "Makefile",
+          "*.ioc",
+          "*.uvprojx",
+          "*.sln",
+          "*.ino"
+        ]
+      },
+      {
+        "name": "Photos",
+        "dest": "Folders/Photos",
+        "min_files": 3,
+        "mostly": [
+          ".jpg",
+          ".jpeg",
+          ".png",
+          ".gif",
+          ".webp",
+          ".heic",
+          ".bmp",
+          ".tiff"
+        ]
+      },
+      {
+        "name": "Videos",
+        "dest": "Folders/Videos",
+        "min_files": 2,
+        "mostly": [
+          ".mp4",
+          ".mkv",
+          ".mov",
+          ".avi",
+          ".wmv",
+          ".webm"
+        ]
+      },
+      {
+        "name": "Audio",
+        "dest": "Folders/Audio",
+        "min_files": 3,
+        "mostly": [
+          ".mp3",
+          ".wav",
+          ".flac",
+          ".aac",
+          ".ogg",
+          ".m4a"
+        ]
+      },
+      {
+        "name": "Documents",
+        "dest": "Folders/Documents",
+        "min_files": 2,
+        "mostly": [
+          ".pdf",
+          ".docx",
+          ".doc",
+          ".pptx",
+          ".ppt",
+          ".xlsx",
+          ".xls",
+          ".csv",
+          ".txt",
+          ".odt",
+          ".md"
+        ]
+      },
+      {
+        "name": "Code",
+        "dest": "Folders/Code",
+        "min_files": 2,
+        "mostly": [
+          ".py",
+          ".c",
+          ".cpp",
+          ".h",
+          ".hpp",
+          ".java",
+          ".js",
+          ".ts",
+          ".ino",
+          ".v",
+          ".vhd",
+          ".asm"
+        ]
+      }
+    ]
+  },
+  "cleanup": {
+    "enabled": false,
+    "archive_dest": "Archive",
+    "rules": [
+      {
+        "name": "Installers",
+        "folder_rule": "Installers",
+        "older_than_days": 30
+      },
+      {
+        "name": "Archives",
+        "folder_rule": "Archives",
+        "older_than_days": 60
+      },
+      {
+        "name": "Disk images",
+        "folder_rule": "Disk images",
+        "older_than_days": 30
+      }
+    ]
+  },
+  "on_conflict": "rename",
+  "dedupe_identical": true,
+  "duplicates_folder": "_Duplicates",
+  "other_folder": "Other",
+  "ignore_hidden": true,
+  "ignore_patterns": [
+    "desktop.ini",
+    "Thumbs.db",
+    ".DS_Store",
+    "*.lnk",
+    "*password*.csv",
+    "Makefile",
+    "Brave Passwords.csv"
+  ],
+  "partial_extensions": [
+    ".crdownload",
+    ".part",
+    ".tmp",
+    ".download",
+    ".partial",
+    ".opdownload"
+  ],
+  "rules": [
+    {
+      "name": "Screenshots",
+      "patterns": [
+        "Screenshot*",
+        "Screen Shot*"
+      ],
+      "dest": "Images/Screenshots",
+      "extensions": [
+        ".png",
+        ".jpg",
+        ".jpeg",
+        ".webp",
+        ".bmp"
+      ]
+    },
+    {
+      "name": "Images",
+      "extensions": [
+        ".jpg",
+        ".jpeg",
+        ".png",
+        ".gif",
+        ".webp",
+        ".bmp",
+        ".tiff",
+        ".svg",
+        ".heic",
+        ".ico"
+      ],
+      "dest": "Images",
+      "subfolders": [
+        "extension"
+      ]
+    },
+    {
+      "name": "Videos",
+      "extensions": [
+        ".mp4",
+        ".mkv",
+        ".mov",
+        ".avi",
+        ".wmv",
+        ".flv",
+        ".webm"
+      ],
+      "dest": "Videos",
+      "subfolders": [
+        "extension"
+      ]
+    },
+    {
+      "name": "Audio",
+      "extensions": [
+        ".mp3",
+        ".wav",
+        ".flac",
+        ".aac",
+        ".ogg",
+        ".m4a"
+      ],
+      "dest": "Audio",
+      "subfolders": [
+        "extension"
+      ]
+    },
+    {
+      "name": "Build files",
+      "patterns": [
+        "Makefile",
+        "GNUmakefile",
+        "CMakeLists.txt",
+        "*.mk",
+        "*.cmake",
+        "platformio.ini",
+        "Dockerfile",
+        "*.ld",
+        "*.lds"
+      ],
+      "dest": "Code/Build"
+    },
+    {
+      "name": "Documents",
+      "extensions": [
+        ".pdf",
+        ".docx",
+        ".doc",
+        ".pptx",
+        ".ppt",
+        ".odp",
+        ".key",
+        ".xlsx",
+        ".xls",
+        ".xlsm",
+        ".csv",
+        ".ods",
+        ".xml",
+        ".txt",
+        ".rtf",
+        ".odt",
+        ".md"
+      ],
+      "dest": "Documents",
+      "subfolders": [
+        "extension",
+        "topic"
+      ]
+    },
+    {
+      "name": "Ebooks",
+      "extensions": [
+        ".epub",
+        ".mobi",
+        ".azw3"
+      ],
+      "dest": "Ebooks"
+    },
+    {
+      "name": "Archives",
+      "extensions": [
+        ".zip",
+        ".rar",
+        ".7z",
+        ".tar",
+        ".gz",
+        ".bz2",
+        ".xz",
+        ".tgz"
+      ],
+      "dest": "Archives"
+    },
+    {
+      "name": "Installers",
+      "extensions": [
+        ".exe",
+        ".msi",
+        ".dmg",
+        ".pkg",
+        ".deb",
+        ".rpm",
+        ".apk",
+        ".appimage"
+      ],
+      "dest": "Installers"
+    },
+    {
+      "name": "Disk images",
+      "extensions": [
+        ".iso",
+        ".img"
+      ],
+      "dest": "Disk Images"
+    },
+    {
+      "name": "Code",
+      "extensions": [
+        ".py",
+        ".c",
+        ".cpp",
+        ".h",
+        ".hpp",
+        ".java",
+        ".js",
+        ".ts",
+        ".json",
+        ".yaml",
+        ".yml",
+        ".sh",
+        ".ino",
+        ".v",
+        ".vhd",
+        ".asm",
+        ".ipynb"
+      ],
+      "dest": "Code",
+      "subfolders": [
+        "extension"
+      ]
+    },
+    {
+      "name": "Fonts",
+      "extensions": [
+        ".ttf",
+        ".otf",
+        ".woff",
+        ".woff2"
+      ],
+      "dest": "Fonts"
+    },
+    {
+      "name": "Design",
+      "extensions": [
+        ".psd",
+        ".ai",
+        ".fig",
+        ".sketch",
+        ".xd",
+        ".dwg",
+        ".stl"
+      ],
+      "dest": "Design"
+    },
+    {
+      "name": "Torrents",
+      "extensions": [
+        ".torrent"
+      ],
+      "dest": "Torrents"
+    },
+    {
+      "name": "Large files",
+      "min_size_mb": 1024,
+      "dest": "Large Files"
+    }
+  ],
+  "unknown_extensions": {
+    "enabled": true,
+    "min_files": 1
+  }
+}
