@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Organizer 2.6 - manage your folders, topics, watched folders and clean-up (no JSON editing needed)
+Organizer 2.7.1 - manage your folders, topics, watched folders and clean-up (no JSON editing needed)
 
 Use it to send SPECIFIC files (for example everything that belongs to one project: its
 README, .bat, .xml and .exe files) to a folder of your choice, instead of the common
@@ -41,6 +41,18 @@ How files are matched
 Your folders are checked BEFORE the built-in ones, so they win. A backup of the config
 (organizer_config.json.bak) is saved before every change.
 """
+
+import builtins
+
+
+def _safe_input(prompt=""):
+    """input() that ends quietly when there is no keyboard (double-click without a console, piped input)."""
+    try:
+        return builtins.input(prompt)
+    except (EOFError, RuntimeError):
+        print()
+        raise SystemExit(0)
+
 
 import argparse
 import json
@@ -493,7 +505,7 @@ def pick_name(cfg, prompt):
     custom = [r["name"] for r in cfg["rules"] if r.get("custom")]
     if custom:
         print("  Your folders: " + ", ".join(custom))
-    return input(prompt).strip()
+    return _safe_input(prompt).strip()
 
 
 def parse_numbers(text, count):
@@ -508,13 +520,13 @@ def parse_numbers(text, count):
 
 
 def menu_suggest(cfg, path):
-    folder = input(f"\nWhich folder should I look at? [{default_suggest_folder(cfg)}]\n> ").strip() or default_suggest_folder(cfg)
+    folder = _safe_input(f"\nWhich folder should I look at? [{default_suggest_folder(cfg)}]\n> ").strip() or default_suggest_folder(cfg)
     organizer, suggestions, scanned, base = get_suggestions(cfg, folder, 3)
     print()
     organizer.print_suggestions(suggestions, scanned, base, 3)
     if not suggestions:
         return
-    chosen = parse_numbers(input("\nCreate which ones? (e.g. 1,3 or all - Enter = none): "), len(suggestions))
+    chosen = parse_numbers(_safe_input("\nCreate which ones? (e.g. 1,3 or all - Enter = none): "), len(suggestions))
     for number in chosen:
         try:
             print(f"\n[{number}] " + apply_suggestion(cfg, suggestions[number - 1]))
@@ -527,36 +539,36 @@ def menu_suggest(cfg, path):
 
 def menu_watch(cfg, path):
     print("\nWatched folders (organized automatically):\n" + action_watch_list(cfg))
-    choice = input("\n a) add a folder   r) remove a folder   Enter) back: ").strip().lower()
+    choice = _safe_input("\n a) add a folder   r) remove a folder   Enter) back: ").strip().lower()
     if choice == "a":
-        print(action_watch_add(cfg, input("Folder path (e.g. C:\\Users\\you\\Desktop): ")))
+        print(action_watch_add(cfg, _safe_input("Folder path (e.g. C:\\Users\\you\\Desktop): ")))
         save(cfg, path)
         print("Saved. Run install.bat again if automatic organizing is not set up yet.")
     elif choice == "r":
-        print(action_watch_remove(cfg, input("Folder path to stop watching: ")))
+        print(action_watch_remove(cfg, _safe_input("Folder path to stop watching: ")))
         save(cfg, path)
         print("Saved.")
 
 
 def menu_topics(cfg, path):
     print("\nSubject topics:\n" + action_topic_list(cfg))
-    choice = input("\n a) add / extend a topic   r) remove a topic   Enter) back: ").strip().lower()
+    choice = _safe_input("\n a) add / extend a topic   r) remove a topic   Enter) back: ").strip().lower()
     if choice == "a":
-        name = input("Topic name (e.g. RTOS): ").strip()
-        words = split_input(input("Words that appear in the file names (comma separated): "))
-        where = split_input(input("Use subject folders inside which folders? (e.g. Documents - Enter = leave as is): "))
+        name = _safe_input("Topic name (e.g. RTOS): ").strip()
+        words = split_input(_safe_input("Words that appear in the file names (comma separated): "))
+        where = split_input(_safe_input("Use subject folders inside which folders? (e.g. Documents - Enter = leave as is): "))
         print(action_topic_add(cfg, name, words, where))
         save(cfg, path)
         print("Saved.")
     elif choice == "r":
-        print(action_topic_remove(cfg, input("Topic to remove: ")))
+        print(action_topic_remove(cfg, _safe_input("Topic to remove: ")))
         save(cfg, path)
         print("Saved.")
 
 
 def pick_folder(cfg, question="Which folder?"):
     default = default_suggest_folder(cfg)
-    answer = input(f"\n{question} [{default}]\n> ").strip()
+    answer = _safe_input(f"\n{question} [{default}]\n> ").strip()
     base = Path(norm_path(answer or default))
     if not base.is_dir():
         raise ValueError(f"Folder not found: {base}")
@@ -581,7 +593,7 @@ def menu_pause(cfg, path):
     pause = organizer.get_pause()
     print("\nAutomatic organizing is " + (f"PAUSED {organizer.describe_pause(pause)}." if pause else "running normally."))
     print("(Organizing you start yourself always works.)")
-    answer = input("Pause for how long? e.g. 30m, 2h, 1d, forever   (r = resume, Enter = back): ").strip()
+    answer = _safe_input("Pause for how long? e.g. 30m, 2h, 1d, forever   (r = resume, Enter = back): ").strip()
     if not answer:
         return
     if answer.lower() in ("r", "resume"):
@@ -601,7 +613,7 @@ def menu_space(cfg, path):
  d) Change how old a kind of file must be
  a) Archive old files now (preview first)
  Enter) back""")
-        choice = input("Choose: ").strip().lower()
+        choice = _safe_input("Choose: ").strip().lower()
         if not choice:
             return
         if choice == "s":
@@ -618,8 +630,8 @@ def menu_space(cfg, path):
             print("Saved.")
         elif choice == "d":
             print("\n" + action_cleanup_show(cfg))
-            name = input("\nWhich rule (e.g. Installers)? ").strip()
-            days = input("Archive files older than how many days? ").strip()
+            name = _safe_input("\nWhich rule (e.g. Installers)? ").strip()
+            days = _safe_input("Archive files older than how many days? ").strip()
             print(action_cleanup_set(cfg, name, days))
             save(cfg, path)
             organizer, merged = merged_config(path)
@@ -628,7 +640,7 @@ def menu_space(cfg, path):
             base = pick_folder(cfg)
             print()
             if organizer.archive_old(merged, base, dry_run=True) and \
-                    input("\nMove these files into the Archive folder now? [y/N] ").strip().lower() in ("y", "yes"):
+                    _safe_input("\nMove these files into the Archive folder now? [y/N] ").strip().lower() in ("y", "yes"):
                 organizer.archive_old(merged, base, assume_yes=True)
         else:
             print("Please choose one of the letters shown.")
@@ -636,20 +648,20 @@ def menu_space(cfg, path):
 
 def menu_unknown(cfg, path):
     print("\n" + action_unknown_show(cfg))
-    choice = input("\n o) turn on / off   m) change the minimum number of files   Enter) back: ").strip().lower()
+    choice = _safe_input("\n o) turn on / off   m) change the minimum number of files   Enter) back: ").strip().lower()
     if choice == "o":
         on = load_organizer().unknown_cfg(cfg)["enabled"] is False
         print(action_unknown_toggle(cfg, on))
         save(cfg, path)
         print("Saved.")
     elif choice == "m":
-        print(action_unknown_min(cfg, input("Make a folder once this many files of a type exist (1 = always): ")))
+        print(action_unknown_min(cfg, _safe_input("Make a folder once this many files of a type exist (1 = always): ")))
         save(cfg, path)
         print("Saved.")
 
 
 def menu(cfg, path):
-    print("\n=== Organizer 2.6 - my folders ===")
+    print("\n=== Organizer 2.7.1 - my folders ===")
     print(f"Settings file: {path}")
     while True:
         print("""
@@ -667,26 +679,26 @@ def menu(cfg, path):
 12) Space report and clean-up of old files
 13) New file types (automatic folders)
  0) Exit""")
-        choice = input("Choose: ").strip()
+        choice = _safe_input("Choose: ").strip()
         try:
             if choice == "0" or choice == "":
                 return
             if choice == "1":
                 print("\n" + action_list(cfg))
             elif choice == "2":
-                name = input("\nName of the folder (e.g. TempMonitor): ").strip()
+                name = _safe_input("\nName of the folder (e.g. TempMonitor): ").strip()
                 print("Which files belong to it? Type file names or words, separated by commas.")
                 print("  Names with a dot are exact (README.md, build.bat); plain words match any")
                 print("  file with that word in its name (tempmonitor).")
-                names = split_input(input("> "))
-                types = input("Only certain file types? (optional, e.g. .exe .bat .xml - Enter = any)\n  A file must match a name AND be one of these types: ").split()
+                names = split_input(_safe_input("> "))
+                types = _safe_input("Only certain file types? (optional, e.g. .exe .bat .xml - Enter = any)\n  A file must match a name AND be one of these types: ").split()
                 default = f"Projects/{name}"
-                dest = input(f"Where should they go? [{default}]\n  (inside the organized folder, or a full path like D:\\Projects\\{name or 'App'}): ").strip()
+                dest = _safe_input(f"Where should they go? [{default}]\n  (inside the organized folder, or a full path like D:\\Projects\\{name or 'App'}): ").strip()
                 print()
                 trial = json.loads(json.dumps(cfg))
                 message = action_add(trial, name, names, types, dest)
                 print(message)
-                if input("\nSave this? [Y/n] ").strip().lower() in ("", "y", "yes"):
+                if _safe_input("\nSave this? [Y/n] ").strip().lower() in ("", "y", "yes"):
                     cfg.clear()
                     cfg.update(trial)
                     save(cfg, path)
@@ -695,14 +707,14 @@ def menu(cfg, path):
                     print("Nothing saved.")
             elif choice == "3":
                 name = pick_name(cfg, "\nWhich folder? ")
-                names = split_input(input("File names or words to add (comma separated): "))
-                types = input("File types to add (optional, e.g. .exe .xml): ").split()
+                names = split_input(_safe_input("File names or words to add (comma separated): "))
+                types = _safe_input("File types to add (optional, e.g. .exe .xml): ").split()
                 print(action_add_files(cfg, name, names, types))
                 save(cfg, path)
                 print("Saved.")
             elif choice == "4":
                 name = pick_name(cfg, "\nFolder to remove: ")
-                if input(f'Remove "{name}"? Files already moved stay where they are. [y/N] ').strip().lower() in ("y", "yes"):
+                if _safe_input(f'Remove "{name}"? Files already moved stay where they are. [y/N] ').strip().lower() in ("y", "yes"):
                     print(action_remove(cfg, name))
                     save(cfg, path)
                     print("Saved.")
@@ -715,7 +727,7 @@ def menu(cfg, path):
                 save(cfg, path)
                 print("Saved.")
             elif choice == "6":
-                names = split_input(input("\nFile names to check (comma separated, e.g. README.md, setup.exe): "))
+                names = split_input(_safe_input("\nFile names to check (comma separated, e.g. README.md, setup.exe): "))
                 if names:
                     print(action_test(cfg, names))
             elif choice == "7":

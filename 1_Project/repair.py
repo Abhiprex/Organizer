@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Organizer 2.6 - repair tool  (double-click repair.bat)
+Organizer 2.7.1 - repair tool  (double-click repair.bat)
 
 Looks for everything that commonly goes wrong and fixes what it safely can. Whatever it
 changes is backed up first (history\\backups), and it never touches your organized files.
@@ -139,7 +139,7 @@ def check_files(findings):
         except (SyntaxError, ValueError, UnicodeDecodeError) as exc:
             findings.append(Finding(f"{name} is damaged ({type(exc).__name__}: {exc})", manual=UNZIP_HINT))
             continue
-        found = re.search(r"Organizer (\d+\.\d+)", text[:600])
+        found = re.search(r"Organizer (\d+(?:\.\d+)+)", text[:600])
         if found:
             versions[name] = found.group(1)
     if len(set(versions.values())) > 1:
@@ -692,7 +692,7 @@ def build_report():
         if path.exists():
             version = ""
             if name.endswith(".py"):
-                found = re.search(r"Organizer (\d+\.\d+)", path.read_text(encoding="utf-8", errors="replace")[:600])
+                found = re.search(r"Organizer (\d+(?:\.\d+)+)", path.read_text(encoding="utf-8", errors="replace")[:600])
                 version = f"  version {found.group(1)}" if found else ""
             p(f"  {name:<24} {path.stat().st_size:>8} bytes{version}")
         else:
@@ -739,7 +739,7 @@ def cmd_report():
 # Menu and command line
 # --------------------------------------------------------------------------- #
 def menu():
-    print("=== Organizer 2.6 - repair ===")
+    print("=== Organizer 2.7.1 - repair ===")
     while True:
         print("""
  1) Check and repair everything (recommended)

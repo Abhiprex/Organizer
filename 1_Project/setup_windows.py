@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Organizer 2.6 - Windows helper for organizer.py  (use install.bat / uninstall.bat, or run it directly)
+Organizer 2.7.1 - Windows helper for organizer.py  (use install.bat / uninstall.bat, or run it directly)
 
   python setup_windows.py install     preview, then optionally:
                                         1) organize your watched folders (Downloads, Desktop, ...)

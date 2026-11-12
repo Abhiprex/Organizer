@@ -1,5 +1,20 @@
-ORGANIZER 2.6 - quick guide
-===========================
+ORGANIZER 2.7.1 - quick guide
+=============================
+
+NEW IN 2.7.1 (fixes found by 300+ extra tests)
+----------------------------------------------
+- A crash or killed run no longer blocks the next run for 15 minutes.
+- Undo records are saved BEFORE each move, so even a hard kill can be undone.
+- A rule with a very slow pattern (regex) is switched off instead of freezing the run.
+- Files with a future date are organized (they count as 'arrived now').
+- Very long names that clash are shortened before adding (1). Odd file names no longer break the log.
+- Files that vanish mid-run are skipped, not counted as errors. Permission problems say so.
+- Office temp files (~$name.docx) are ignored. Makefile is sorted again.
+- More file types sorted (html, css, raw, m4v, mid, go, rs, sql ...) and a new Firmware folder (hex, bin, elf, map).
+- Rules written as "pdf" now work like ".pdf". A rule cannot send files outside the folder unless it has
+  "allow_outside": true. --clean-empty and undo also remove empty category folders.
+- If the Organizer folder is read-only it now stops with a clear message instead of saving history elsewhere.
+
 
 SET UP (Windows, once)
   1. Unzip this folder somewhere permanent, e.g. D:\Organizer  (don't move it afterwards).
@@ -18,6 +33,19 @@ DAILY USE
   * By hand:   python organizer.py --dry-run     (preview)
                python organizer.py               (organize the folder you are in)
                python organizer.py --undo        (reverse the last run in that folder)
+
+TOUGHENED BY A STRESS TEST (new in 2.7)
+  A deliberately hostile test folder (6,000 files: odd names, 120 unknown types, files named
+  "Documents" or "Images", links, 3,000-file folders, clock-skewed dates) found three problems,
+  now fixed:
+    1) A FILE named like a destination folder (a file called "Documents", "Images", "Other" ...)
+       used to make every move into that folder fail. Organizer now uses "Documents (folder)".
+    2) One root cause could produce thousands of identical errors and keep hammering. It now lists
+       the first 20, then stops early if most files are failing (disk full, no permission).
+    3) Undo records used to be written only at the END of a run, so a crash, a killed task or
+       Ctrl+C left moved files that could not be undone. They are now saved after every move:
+       after a hard kill every move that happened can still be undone.
+  Nothing was ever lost in the test: 6,025 files in, 6,025 files out.
 
 NEW FILE TYPES GET THEIR OWN FOLDER (new in 2.6)
   A file whose type has no rule used to land in one big "Other" pile. Now each new type gets

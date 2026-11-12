@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Organizer 2.6 (organizer.py) - a configurable, cross-platform folder organizer (stdlib only).
+Organizer 2.7.1 (organizer.py) - a configurable, cross-platform folder organizer (stdlib only).
 
 Features
   * Rule-based sorting: extension, filename glob, regex, file size
@@ -53,6 +53,8 @@ import argparse
 import contextlib
 import copy
 import errno
+import signal
+import threading
 import fnmatch
 import functools
 import hashlib
@@ -71,7 +73,7 @@ from collections import Counter, defaultdict
 from datetime import datetime, timedelta
 from pathlib import Path
 
-__version__ = "2.6"
+__version__ = "2.7.1"
 
 HISTORY_FILE = ".organizer_history.jsonl"   # legacy location (inside the organized folder)
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -129,7 +131,7 @@ DEFAULT_CONFIG = {
             {"name": "Videos", "dest": "Folders/Videos", "min_files": 2,
              "mostly": [".mp4", ".mkv", ".mov", ".avi", ".wmv", ".webm"]},
             {"name": "Audio", "dest": "Folders/Audio", "min_files": 3,
-             "mostly": [".mp3", ".wav", ".flac", ".aac", ".ogg", ".m4a"]},
+             "mostly": [".mp3", ".wav", ".flac", ".aac", ".ogg", ".m4a", ".opus", ".aiff", ".aif", ".mid", ".midi", ".wma"]},
             {"name": "Documents", "dest": "Folders/Documents", "min_files": 2,
              "mostly": [".pdf", ".docx", ".doc", ".pptx", ".ppt", ".xlsx", ".xls", ".csv", ".txt", ".odt", ".md"]},
             {"name": "Code", "dest": "Folders/Code", "min_files": 2,
@@ -158,26 +160,29 @@ DEFAULT_CONFIG = {
     # (smaller piles stay loose in Other/ until then, then are tidied into the new folder).
     "unknown_extensions": {"enabled": True, "min_files": 1},
     "ignore_hidden": True,
-    "ignore_patterns": ["desktop.ini", "Thumbs.db", ".DS_Store", "*.lnk", "*password*.csv"],
+    "ignore_patterns": ["desktop.ini", "Thumbs.db", ".DS_Store", "*.lnk", "*password*.csv", "~$*"],
     "partial_extensions": [".crdownload", ".part", ".tmp", ".download", ".partial", ".opdownload"],
     "rules": [
         {"name": "Screenshots", "patterns": ["Screenshot*", "Screen Shot*"], "extensions": [".png", ".jpg", ".jpeg", ".webp", ".bmp"],
          "dest": "Images/Screenshots"},
-        {"name": "Images", "extensions": [".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".tiff", ".svg", ".heic", ".ico"],
+        {"name": "Images", "extensions": [".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".tiff", ".tif", ".svg", ".heic", ".ico", ".raw", ".cr2", ".nef", ".arw", ".dng", ".eps", ".jfif", ".avif"],
          "dest": "Images", "subfolders": ["extension"]},
-        {"name": "Videos", "extensions": [".mp4", ".mkv", ".mov", ".avi", ".wmv", ".flv", ".webm"], "dest": "Videos", "subfolders": ["extension"]},
-        {"name": "Audio", "extensions": [".mp3", ".wav", ".flac", ".aac", ".ogg", ".m4a"], "dest": "Audio", "subfolders": ["extension"]},
+        {"name": "Videos", "extensions": [".mp4", ".mkv", ".mov", ".avi", ".wmv", ".flv", ".webm", ".m4v", ".mpg", ".mpeg", ".3gp"], "dest": "Videos", "subfolders": ["extension"]},
+        {"name": "Audio", "extensions": [".mp3", ".wav", ".flac", ".aac", ".ogg", ".m4a", ".opus", ".aiff", ".aif", ".mid", ".midi", ".wma"], "dest": "Audio", "subfolders": ["extension"]},
         {"name": "Build files", "patterns": ["Makefile", "GNUmakefile", "CMakeLists.txt", "*.mk", "*.cmake", "platformio.ini", "Dockerfile", "*.ld", "*.lds"],
          "dest": "Code/Build"},   # extension-less / special names; must stay above Documents
-        {"name": "Documents", "extensions": [".pdf", ".docx", ".doc", ".pptx", ".ppt", ".odp", ".key", ".xlsx", ".xls", ".xlsm", ".csv", ".ods",
+        {"name": "Documents", "extensions": [".pdf", ".docx", ".doc", ".pptx", ".ppt", ".odp", ".key", ".xlsx", ".xls", ".xlsm", ".xlsb", ".docm", ".dotx", ".pptm", ".csv", ".ods",
                         ".xml", ".txt", ".rtf", ".odt", ".md"],
          "dest": "Documents", "subfolders": ["extension", "topic"]},   # Documents/PDF, DOCX, PPTX, XLSX, CSV, XML ...
         {"name": "Ebooks", "extensions": [".epub", ".mobi", ".azw3"], "dest": "Ebooks"},
         {"name": "Archives", "extensions": [".zip", ".rar", ".7z", ".tar", ".gz", ".bz2", ".xz", ".tgz"], "dest": "Archives"},
         {"name": "Installers", "extensions": [".exe", ".msi", ".dmg", ".pkg", ".deb", ".rpm", ".apk", ".appimage"], "dest": "Installers"},
         {"name": "Disk images", "extensions": [".iso", ".img"], "dest": "Disk Images"},
-        {"name": "Code", "extensions": [".py", ".c", ".cpp", ".h", ".hpp", ".java", ".js", ".ts", ".json", ".yaml", ".yml", ".sh", ".ino", ".v", ".vhd", ".asm", ".ipynb"],
+        {"name": "Code", "extensions": [".py", ".c", ".cpp", ".h", ".hpp", ".java", ".js", ".ts", ".json", ".yaml", ".yml", ".sh", ".ino", ".v", ".vhd", ".asm", ".ipynb",
+                        ".html", ".htm", ".css", ".scss", ".cs", ".go", ".rs", ".php", ".rb", ".swift", ".kt", ".sql", ".jsx", ".tsx", ".lua", ".toml"],
          "dest": "Code", "subfolders": ["extension"]},
+        {"name": "Firmware", "extensions": [".hex", ".bin", ".elf", ".map", ".s19", ".srec", ".axf", ".uf2", ".lst"],
+         "dest": "Firmware", "subfolders": ["extension"]},
         {"name": "Fonts", "extensions": [".ttf", ".otf", ".woff", ".woff2"], "dest": "Fonts"},
         {"name": "Design", "extensions": [".psd", ".ai", ".fig", ".sketch", ".xd", ".dwg", ".stl"], "dest": "Design"},
         {"name": "Torrents", "extensions": [".torrent"], "dest": "Torrents"},
@@ -248,6 +253,21 @@ def find_config(explicit):
     return None, False
 
 
+def _fix_extension_dots(cfg):
+    """A rule written as "extensions": ["pdf"] used to match nothing. Add the missing dots."""
+    def fix(rule):
+        exts = rule.get("extensions") if isinstance(rule, dict) else None
+        if isinstance(exts, list) and any(isinstance(e, str) and e and not e.startswith(".") for e in exts):
+            rule["extensions"] = [("." + e if isinstance(e, str) and e and not e.startswith(".") else e) for e in exts]
+            log.warning('Rule "%s": added the missing dot to its extensions (write ".pdf", not "pdf").', rule.get("name", "?"))
+        for sub in (rule.get("sub_rules", []) if isinstance(rule, dict) else []):
+            fix(sub)
+    rules = cfg.get("rules")
+    if isinstance(rules, list):
+        for rule in rules:
+            fix(rule)
+
+
 def load_config(explicit):
     """Returns (config, path of config used or None)."""
     cfg = json.loads(json.dumps(DEFAULT_CONFIG))  # deep copy
@@ -267,18 +287,74 @@ def load_config(explicit):
         if not is_explicit:
             user.pop("source", None)  # auto-found configs supply rules only, never the folder
         cfg.update(user)
+    _fix_extension_dots(cfg)
     return cfg, path
+
+
+def unblock_dir(base, dest):
+    """A FILE (or a link) sitting where a destination folder must go - say a file called
+    'Documents' - would make every move there fail. Use 'Documents (folder)' instead."""
+    try:
+        parts = Path(dest).relative_to(base).parts
+    except ValueError:
+        return Path(dest)                               # outside the organized folder: leave as is
+    current = Path(base)
+    for part in parts:
+        candidate, number = current / part, 1
+        while os.path.lexists(candidate) and (candidate.is_symlink() or not candidate.is_dir()):
+            number += 1
+            candidate = current / (f"{part} (folder)" if number == 2 else f"{part} (folder {number - 1})")
+        current = candidate
+    return current
 
 
 def resolve_dest(base, dest):
     """Absolute / ~ paths are used as-is, relative ones live inside `base`."""
     d = Path(dest).expanduser()
-    return d if d.is_absolute() else base / d
+    return d if d.is_absolute() else unblock_dir(base, base / d)
 
 
 # --------------------------------------------------------------------------- #
 # Matching
 # --------------------------------------------------------------------------- #
+_BAD_RULES = set()
+_NESTED_REPEAT = re.compile(r"\((?:[^()\\]|\\.)*[+*](?:[^()\\]|\\.)*\)\s*(?:[+*]|\{\d*,\d*\})")
+
+
+def regex_looks_slow(pattern):
+    """True for patterns like (a+)+ that can take forever on a long name (nested repeats)."""
+    return bool(_NESTED_REPEAT.search(pattern))
+
+
+class _RegexTimeout(Exception):
+    pass
+
+
+def safe_regex_search(rule, name):
+    """re.search with a 1 second limit (where the OS allows it); a rule that is too slow is switched off."""
+    key = rule.get("name", "") + "|" + rule["regex"]
+    if key in _BAD_RULES:
+        return False
+    use_alarm = hasattr(signal, "setitimer") and threading.current_thread() is threading.main_thread()
+    old = None
+    try:
+        if use_alarm:
+            def _handler(signum, frame):
+                raise _RegexTimeout()
+            old = signal.signal(signal.SIGALRM, _handler)
+            signal.setitimer(signal.ITIMER_REAL, 1.0)
+        try:
+            return re.search(rule["regex"], name, re.IGNORECASE) is not None
+        finally:
+            if use_alarm:
+                signal.setitimer(signal.ITIMER_REAL, 0)
+                signal.signal(signal.SIGALRM, old)
+    except _RegexTimeout:
+        _BAD_RULES.add(key)
+        log.warning('Rule "%s": the regex is too slow, so this rule is switched off for now. Simplify it.', rule.get("name", "?"))
+        return False
+
+
 def rule_matches(rule, path, size):
     name = path.name.lower()
     ext = "".join(path.suffixes[-1:]).lower()
@@ -289,7 +365,7 @@ def rule_matches(rule, path, size):
     if "patterns" in rule:
         checks.append(any(fnmatch.fnmatch(name, p.lower()) for p in rule["patterns"]))
     if "regex" in rule:
-        checks.append(re.search(rule["regex"], path.name, re.IGNORECASE) is not None)
+        checks.append(safe_regex_search(rule, path.name))
     if "min_size_mb" in rule:
         checks.append(size >= rule["min_size_mb"] * 1024 * 1024)
     if "max_size_mb" in rule:
@@ -384,12 +460,36 @@ def unknown_extension_folder(cfg, other_dest, path, counts):
     return name if seen >= settings["min_files"] else None
 
 
+_WARNED = set()
+
+
+def _dest_allowed(base, dest, rule):
+    """A rule may only send files into the organized folder, unless it says "allow_outside": true
+    (and even then never into a system location)."""
+    if _inside(Path(os.path.normpath(str(dest))), base):
+        return True
+    ok = False
+    if rule.get("allow_outside") is True:
+        try:
+            check_safe(Path(os.path.normpath(str(dest))), False, True)
+            ok = True
+        except SystemExit:
+            ok = False
+    if not ok and rule["name"] not in _WARNED:
+        _WARNED.add(rule["name"])
+        log.warning('Rule "%s" points outside the organized folder (%s), so it was not used. '
+                    'Add "allow_outside": true to the rule if you really want that.', rule["name"], dest)
+    return ok
+
+
 def pick_destination(cfg, base, path, size, unknown_counts=None):
     """Return (final destination folder, label) or (None, None) to leave the file."""
     for rule in cfg["rules"]:
         if rule.get("enabled", True) is False or not rule_matches(rule, path, size):
             continue
         dest = resolve_dest(base, rule["dest"])
+        if not _dest_allowed(base, dest, rule):
+            continue
         label = rule["name"]
         for sub in rule.get("sub_rules", []):
             if rule_matches(sub, path, size):
@@ -427,6 +527,10 @@ def validate_config(cfg):
                 re.compile(rule["regex"])
             except re.error as exc:
                 sys.exit(f'Rule "{rule["name"]}": invalid regex ({exc}).')
+            if regex_looks_slow(rule["regex"]):
+                log.warning('Rule "%s": the regex looks like it can run for ages (repeats inside repeats), '
+                            'so this rule is switched off. Simplify it.', rule["name"])
+                rule["enabled"] = False
         if not any(k in rule for k in ("extensions", "patterns", "regex", "min_size_mb", "max_size_mb")):
             log.warning('Rule "%s" has nothing to match on, so it will never be used.', rule["name"])
     unknown = cfg.get("unknown_extensions", {})
@@ -484,12 +588,19 @@ def identical(a, b):
         return False
 
 
+def _fit_name(stem, tail, suffix, limit=255):
+    """stem + tail + suffix, with the stem shortened so the whole name stays within the 255 limit."""
+    while len((stem + tail + suffix).encode("utf-8", "replace")) > limit and len(stem) > 1:
+        stem = stem[:-1]
+    return stem + tail + suffix
+
+
 def unique_path(path):
     if not path.exists():
         return path
     stem, suffix, n = path.stem, path.suffix, 1
     while True:
-        candidate = path.with_name(f"{stem} ({n}){suffix}")
+        candidate = path.with_name(_fit_name(stem, f" ({n})", suffix))
         if not candidate.exists():
             return candidate
         n += 1
@@ -587,6 +698,19 @@ def is_hidden(path):
     return False
 
 
+def _usable_mtime(st, now):
+    """A date far in the future (wrong clock, odd download) counts as 'when the file arrived here'."""
+    mtime = st.st_mtime
+    if mtime > now + 120:
+        mtime = min(getattr(st, "st_birthtime", None) or st.st_ctime, now)
+    return mtime
+
+
+def file_age(st):
+    now = time.time()
+    return now - _usable_mtime(st, now)
+
+
 def should_skip(cfg, path, protected):
     name = path.name
     if name == HISTORY_FILE or name == Path(__file__).name or name == DEFAULT_CONFIG_NAME:
@@ -599,7 +723,7 @@ def should_skip(cfg, path, protected):
         return "ignored pattern"
     if any(parent in protected for parent in path.parents):
         return "already organized"
-    age = time.time() - path.stat().st_mtime
+    age = file_age(path.stat())
     if age < cfg["min_age_seconds"]:
         return "too new (may still be downloading)"
     return None
@@ -685,7 +809,7 @@ def scan_folder(folder, limit=2000):
     """Look inside a folder (bounded): file count, types, newest change, names near the top."""
     exts, files, truncated = Counter(), 0, False
     try:
-        newest = folder.stat().st_mtime
+        newest = _usable_mtime(folder.stat(), time.time())
         top = [e.name for e in os.scandir(folder)]
     except OSError:
         return None
@@ -702,7 +826,7 @@ def scan_folder(folder, limit=2000):
                 if entry.is_symlink():
                     continue
                 stat = entry.stat(follow_symlinks=False)
-                newest = max(newest, stat.st_mtime)
+                newest = max(newest, _usable_mtime(stat, time.time()))
                 if depth <= 2:
                     names.add(entry.name)
                 if entry.is_dir(follow_symlinks=False):
@@ -787,12 +911,50 @@ def iter_candidate_folders(cfg, fcfg, base, protected):
 # --------------------------------------------------------------------------- #
 # Core
 # --------------------------------------------------------------------------- #
+def write_history_entries(base, history):
+    """Append the pending undo records to the history file and clear the list."""
+    if not history:
+        return
+    try:
+        with open(history_path(base), "a", encoding="utf-8") as fh:
+            for entry in history:
+                fh.write(json.dumps(entry) + "\n")
+        history.clear()
+    except OSError as exc:
+        log.error("items were moved but the history could not be saved (undo unavailable): %s", exc)
+
+
+def _permission_reason(exc):
+    """Tell 'another program has it open' apart from 'you are not allowed to'."""
+    code = getattr(exc, "winerror", None)
+    if code in (32, 33):
+        return "in use by another program, will retry next run"
+    if code == 5:
+        return "access denied (open in another program, or read-only), will retry next run"
+    return "permission denied (check that the file and the folders are not read-only)"
+
+
 def organize(cfg, base, dry_run=False):
+    """One organizing pass. The undo records are written as the run goes (after every move) and
+    again in `finally`, so a crash, Ctrl+C or a killed task cannot leave moves that cannot be undone."""
+    history = []
+    try:
+        return _organize(cfg, base, dry_run, history)
+    finally:
+        write_history_entries(base, history)
+
+
+def _organize(cfg, base, dry_run, history):
+    if not dry_run and history_dir() is None:
+        message = ("Nothing was moved: Organizer cannot save its undo history because its own folder is read-only. "
+                   "Put the Organizer folder somewhere you can write to (for example D:\\Organizer_2.8) and run again.")
+        log.error(message)
+        sys.exit(message)
     if not dry_run:
         migrate_legacy_history(base)
     run_id = uuid.uuid4().hex[:8]
     protected = protected_dirs(cfg, base)
-    history = []
+    aborted = False
     stats = {"moved": 0, "skipped": 0, "duplicates": 0, "errors": 0, "duplicate_bytes": 0}
     skip_reasons = Counter()
     moved_by_folder = Counter()
@@ -820,6 +982,8 @@ def organize(cfg, base, dry_run=False):
                     unknown_counts[extension_key(item)] += 1
 
     for path in candidates:
+        if history:                                  # the previous move is saved before the next one starts
+            write_history_entries(base, history)
         try:
             reason = should_skip(cfg, path, protected)
             if reason:
@@ -839,6 +1003,7 @@ def organize(cfg, base, dry_run=False):
             if dest_dir is None:
                 stats["skipped"] += 1
                 continue
+            dest_dir = unblock_dir(base, dest_dir)
             target = dest_dir / path.name
 
             twin = index.find(dest_dir, path, size) if cfg["dedupe_identical"] else None
@@ -861,36 +1026,53 @@ def organize(cfg, base, dry_run=False):
                     stats["skipped"] += 1
                     continue
                 if mode == "rename":
+                    original = target
                     target = unique_path(target)
+                    log.info("%s already exists in %s - saved as %s", original.name, original.parent, target.name)
                 elif mode == "overwrite":
                     backup = unique_path(target.with_name(
-                        f"{target.stem}.backup-{run_id}{target.suffix}"))
+                        _fit_name(target.stem, f".backup-{run_id}", target.suffix)))
                     log.info("preserving overwritten file %s -> %s", target, backup)
                     if not dry_run:
                         backup.parent.mkdir(parents=True, exist_ok=True)
-                        safe_move(target, backup)
                         history.append({"run": run_id, "src": str(target), "dst": str(backup),
                                         "time": datetime.now().isoformat(timespec="seconds")})
+                        write_history_entries(base, history)          # saved BEFORE the move (crash-proof)
+                        safe_move(target, backup)
 
             log.info("%s%s -> %s  [%s]", "[dry-run] " if dry_run else "", path.name, target.parent, rule_name)
             if not dry_run:
                 target.parent.mkdir(parents=True, exist_ok=True)
-                safe_move(path, target)
                 history.append({"run": run_id, "src": str(path), "dst": str(target),
                                 "time": datetime.now().isoformat(timespec="seconds")})
+                write_history_entries(base, history)                  # saved BEFORE the move (crash-proof)
+                safe_move(path, target)
             if not rule_name.startswith("Duplicate of"):
                 moved_by_folder[rule_name.split("/")[0]] += 1
                 index.add(target.parent, target if not dry_run else path, size, known_hash_of=path)
             stats["moved"] += 1
-        except PermissionError:
-            log.warning("in use, will retry next run: %s", path.name)
-            skip_reasons["in use"] += 1
+        except PermissionError as exc:
+            reason = _permission_reason(exc)
+            log.warning("%s: %s", reason, path.name)
+            skip_reasons[reason.split(",")[0]] += 1
             stats["skipped"] += 1
         except Exception as exc:  # keep going if a single file fails
-            log.error("failed on %s: %s", path.name, exc)
+            if isinstance(exc, FileNotFoundError) and not os.path.lexists(path):
+                skip_reasons["vanished while running"] += 1      # e.g. a browser deleted its temp file
+                stats["skipped"] += 1
+                continue
             stats["errors"] += 1
+            if stats["errors"] <= 20:
+                log.error("failed on %s: %s", path.name, exc)
+            elif stats["errors"] == 21:
+                log.error("more files are failing the same way - they are not all listed")
+            if stats["errors"] >= 50 and stats["errors"] > 4 * (stats["moved"] + 1):
+                log.error("stopping early because most files fail (last error: %s). Check that the folder "
+                          "can be written to and the disk is not full.", exc)
+                aborted = True
+                break
 
-    if activated and other_dest is not None and other_dest.is_dir():
+    if activated and other_dest is not None and other_dest.is_dir() and not aborted:
         for item in sorted(other_dest.iterdir()):            # strays left loose when the pile was too small
             key = extension_key(item) if item.is_file() else None
             if key not in activated:
@@ -900,9 +1082,10 @@ def organize(cfg, base, dry_run=False):
             try:
                 if not dry_run:
                     target.parent.mkdir(parents=True, exist_ok=True)
-                    safe_move(item, target)
                     history.append({"run": run_id, "src": str(item), "dst": str(target),
                                     "time": datetime.now().isoformat(timespec="seconds")})
+                    write_history_entries(base, history)
+                    safe_move(item, target)
                 moved_by_folder["Other"] += 1
                 stats["moved"] += 1
             except OSError as exc:
@@ -910,8 +1093,10 @@ def organize(cfg, base, dry_run=False):
                 stats["errors"] += 1
 
     fcfg = folders_cfg(cfg)
-    if fcfg["enabled"] and not cfg["recursive"]:
+    if fcfg["enabled"] and not cfg["recursive"] and not aborted:
         for folder in iter_candidate_folders(cfg, fcfg, base, protected):
+            if history:
+                write_history_entries(base, history)
             try:
                 dest_dir, label, reason = folder_target(cfg, fcfg, base, folder)
                 if dest_dir is None:
@@ -924,36 +1109,65 @@ def organize(cfg, base, dry_run=False):
                 log.info("%s%s/ -> %s  [%s]", "[dry-run] " if dry_run else "", folder.name, target.parent, label)
                 if not dry_run:
                     target.parent.mkdir(parents=True, exist_ok=True)
-                    os.rename(str(folder), str(target))          # a rename keeps the folder intact; never a copy
                     history.append({"run": run_id, "src": str(folder), "dst": str(target), "kind": "folder",
                                     "time": datetime.now().isoformat(timespec="seconds")})
+                    write_history_entries(base, history)
+                    os.rename(str(folder), str(target))          # a rename keeps the folder intact; never a copy
                 moved_by_folder[label] += 1
                 stats["moved"] += 1
-            except PermissionError:
-                log.warning("folder in use, will retry next run: %s", folder.name)
-                skip_reasons["in use"] += 1
+            except PermissionError as exc:
+                reason = _permission_reason(exc)
+                log.warning("folder - %s: %s", reason, folder.name)
+                skip_reasons[reason.split(",")[0]] += 1
                 stats["skipped"] += 1
             except Exception as exc:
-                log.error("failed on folder %s: %s", folder.name, exc)
                 stats["errors"] += 1
+                if stats["errors"] <= 20:
+                    log.error("failed on folder %s: %s", folder.name, exc)
 
-    if history:
-        try:
-            with open(history_path(base), "a", encoding="utf-8") as fh:
-                for entry in history:
-                    fh.write(json.dumps(entry) + "\n")
-        except OSError as exc:
-            log.error("items were moved but the history could not be saved (undo unavailable): %s", exc)
+    write_history_entries(base, history)
+    stats["aborted"] = aborted
 
     if moved_by_folder:
         log.info("summary: %s", ", ".join(f"{n} {name}" for name, n in moved_by_folder.most_common()))
     if stats["duplicates"]:
         log.info("%d duplicate file(s) set aside in %s (%s) - once you have looked, delete that folder to free the space",
                  stats["duplicates"], cfg["duplicates_folder"], human_size(stats["duplicate_bytes"]))
+    if dry_run and any(r.startswith("too new") for r in skip_reasons):
+        log.info("tip: files younger than %d s are skipped on purpose; add --min-age 0 to preview them too.",
+                 cfg["min_age_seconds"])
     detail = f" [{', '.join(f'{n} {r}' for r, n in skip_reasons.most_common())}]" if skip_reasons else ""
     log.info("done: %d moved (%d duplicates), %d skipped%s, %d errors",
              stats["moved"], stats["duplicates"], stats["skipped"], detail, stats["errors"])
     return stats
+
+
+def _pid_alive(pid):
+    """Is a process with this id still running? (never signals the process)"""
+    if pid <= 0:
+        return False
+    if sys.platform.startswith("win"):
+        try:
+            import ctypes
+            kernel = ctypes.windll.kernel32
+            handle = kernel.OpenProcess(0x1000, False, pid)        # PROCESS_QUERY_LIMITED_INFORMATION
+            if not handle:
+                return ctypes.GetLastError() == 5                    # access denied = it exists
+            code = ctypes.c_ulong()
+            ok = kernel.GetExitCodeProcess(handle, ctypes.byref(code))
+            kernel.CloseHandle(handle)
+            return bool(ok) and code.value == 259                    # STILL_ACTIVE
+        except Exception:
+            return True
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    except OSError:
+        return True
+    return True
 
 
 @contextlib.contextmanager
@@ -964,12 +1178,22 @@ def run_lock(base):
     state = "free"
     for _ in range(2):
         try:
-            os.close(os.open(str(lock), os.O_CREAT | os.O_EXCL | os.O_WRONLY))
+            fd = os.open(str(lock), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+            try:
+                os.write(fd, str(os.getpid()).encode())
+            finally:
+                os.close(fd)
             state = "held"
             break
         except FileExistsError:
             try:
-                if time.time() - lock.stat().st_mtime > 900:   # left behind by a crashed run
+                owner = None
+                try:
+                    owner = int(lock.read_text().strip())
+                except (OSError, ValueError):
+                    pass
+                too_old = time.time() - lock.stat().st_mtime > 900
+                if too_old or (owner is not None and not _pid_alive(owner)):   # left behind by a crashed run
                     lock.unlink()
                     continue
             except OSError:
@@ -988,10 +1212,14 @@ def run_lock(base):
                 pass
 
 
+DAMAGED_LINES = [0]
+
+
 def read_history(base):
     migrate_legacy_history(base)
     hist = history_path(base)
     entries = []
+    DAMAGED_LINES[0] = 0
     if hist.exists():
         for line in hist.read_text(encoding="utf-8").splitlines():
             if not line.strip():
@@ -999,6 +1227,7 @@ def read_history(base):
             try:
                 entries.append(json.loads(line))
             except ValueError:
+                DAMAGED_LINES[0] += 1
                 log.warning("ignoring a damaged line in %s", hist.name)
     return hist, entries
 
@@ -1014,6 +1243,9 @@ def restore_entry(entry, dry_run):
     """Move one file back where it came from. Returns True on success."""
     src, dst = Path(entry["src"]), Path(entry["dst"])
     if not dst.exists():
+        if src.exists():                       # the record was saved just before a move that never happened
+            log.debug("never moved (run was interrupted): %s", src.name)
+            return None
         log.warning("missing, cannot restore: %s", dst)
         return False
     restore = unique_path(src) if src.exists() else src
@@ -1051,7 +1283,7 @@ def show_history(base):
 def undo_run(base, dry_run=False, run_id=None):
     hist, entries = read_history(base)
     if not entries:
-        log.info("nothing to undo")
+        log.info("nothing to undo for this folder%s", f" (no run '{run_id}' is recorded here)" if run_id else "")
         return
     if run_id is None:
         run_id = entries[-1]["run"]
@@ -1067,14 +1299,31 @@ def undo_run(base, dry_run=False, run_id=None):
     failed = set()
     restored = 0
     for index in reversed(chosen):
-        if restore_entry(entries[index], dry_run):
+        outcome = restore_entry(entries[index], dry_run)
+        if outcome:
             restored += 1
-        else:
+            if not dry_run:
+                _remove_empty_parents(Path(entries[index]["dst"]).parent, base)
+        elif outcome is False:
             failed.add(index)
     if not dry_run:
         write_history(hist, [e for i, e in enumerate(entries) if i not in chosen or i in failed])
     log.info("%s run %s (%d item(s); %d could not be restored)",
              "would undo" if dry_run else "undid", run_id, restored, len(failed))
+    if DAMAGED_LINES[0]:
+        log.warning("%d damaged line(s) in the history could not be read, so those files (if any) were NOT put back.",
+                    DAMAGED_LINES[0])
+
+
+def _remove_empty_parents(folder, base):
+    """After undo, remove the now-empty destination folders (never the organized folder itself)."""
+    folder = Path(folder)
+    while folder != base and _inside(folder, base):
+        try:
+            folder.rmdir()
+        except OSError:
+            break
+        folder = folder.parent
 
 
 def restore_files(base, names, dry_run=False):
@@ -1091,9 +1340,10 @@ def restore_files(base, names, dry_run=False):
         return
     restored = 0
     for index in chosen:
-        if restore_entry(entries[index], dry_run):
+        outcome = restore_entry(entries[index], dry_run)
+        if outcome:
             restored += 1
-        else:
+        elif outcome is False:
             failed.add(index)
     if not dry_run:
         write_history(hist, [e for i, e in enumerate(entries) if i not in chosen or i in failed])
@@ -1220,10 +1470,8 @@ def find_duplicates(cfg, base, set_aside=False, dry_run=False, assume_yes=False)
 def cleanup_empty_dirs(base, cfg):
     protected = protected_dirs(cfg, base)
     for d in sorted((p for p in base.rglob("*") if p.is_dir()), reverse=True):
-        if d.resolve() in protected:
-            continue
         try:
-            d.rmdir()  # only succeeds if empty
+            d.rmdir()  # only succeeds if empty (including empty category folders like Documents)
             log.info("removed empty folder %s", d)
         except OSError:
             pass
@@ -2017,17 +2265,39 @@ def parse_args():
     return p.parse_args()
 
 
+class _SafeText(logging.Filter):
+    """File names with undecodable bytes must never break a log line."""
+    def filter(self, record):
+        try:
+            text = record.getMessage()
+        except Exception:
+            text = str(record.msg)
+        record.msg = text.encode("utf-8", "backslashreplace").decode("utf-8", "replace")
+        record.args = ()
+        return True
+
+
 def setup_logging(verbose, log_file):
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(errors="backslashreplace")
+        except Exception:
+            pass
     console = logging.StreamHandler()
     console.setFormatter(logging.Formatter("%(asctime)s  %(message)s", "%H:%M:%S"))
     handlers = [console]
     file_format = logging.Formatter("%(asctime)s  %(levelname)-7s %(message)s", "%Y-%m-%d %H:%M:%S")
     folder = history_dir()
     if folder is not None:
-        handlers.append(logging.handlers.RotatingFileHandler(
-            folder / "organizer.log", maxBytes=1_000_000, backupCount=3, encoding="utf-8"))
+        try:
+            handlers.append(logging.handlers.RotatingFileHandler(
+                folder / "organizer.log", maxBytes=1_000_000, backupCount=3, encoding="utf-8"))
+        except OSError as exc:                      # log file locked or not ours: carry on without it
+            print(f"note: could not open the log file ({exc}); continuing without it", file=sys.stderr)
     if log_file:
         handlers.append(logging.FileHandler(log_file, encoding="utf-8"))
+    for handler in handlers:
+        handler.addFilter(_SafeText())
     for handler in handlers[1:]:
         handler.setFormatter(file_format)
     logging.basicConfig(level=logging.DEBUG if verbose else logging.INFO, handlers=handlers)
@@ -2067,6 +2337,9 @@ def prepare_targets(args, base_cfg):
         sys.exit("Use either --all (every watched folder) or -s (one folder), not both.")
     if args.all:
         sources = watch_entries(base_cfg)
+        if not sources and getattr(args, "scheduled", False):
+            log.info("no watched folders are set up, nothing to do")
+            return []
         if not sources:
             sys.exit('No folders are listed under "watch" in the config. Add one with:\n'
                      '  python manage_folders.py watch-add "C:\\Users\\you\\Downloads"')
@@ -2150,7 +2423,7 @@ def organize_one(cfg, base, args):
                 record_run(base, {}, mode, "error")
             raise
         if not args.dry_run:
-            record_run(base, stats, mode, "ok")
+            record_run(base, stats, mode, "stopped" if stats.get("aborted") else "ok")
         if args.clean_empty and not args.dry_run:
             cleanup_empty_dirs(base, cfg)
         maybe_auto_archive(cfg, base, args.dry_run)
@@ -2200,6 +2473,8 @@ def main():
 
     targets = prepare_targets(args, base_cfg)
     if not targets:
+        if args.all and args.scheduled and not watch_entries(base_cfg):
+            return                                   # nothing is set up to watch: a quiet, successful run
         sys.exit("None of the watched folders exist.")
 
     if commands:

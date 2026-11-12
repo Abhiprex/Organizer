@@ -182,8 +182,7 @@
     ".DS_Store",
     "*.lnk",
     "*password*.csv",
-    "Makefile",
-    "Brave Passwords.csv"
+    "~$*"
   ],
   "partial_extensions": [
     ".crdownload",
@@ -221,7 +220,16 @@
         ".tiff",
         ".svg",
         ".heic",
-        ".ico"
+        ".ico",
+        ".tif",
+        ".raw",
+        ".cr2",
+        ".nef",
+        ".arw",
+        ".dng",
+        ".eps",
+        ".jfif",
+        ".avif"
       ],
       "dest": "Images",
       "subfolders": [
@@ -237,7 +245,11 @@
         ".avi",
         ".wmv",
         ".flv",
-        ".webm"
+        ".webm",
+        ".m4v",
+        ".mpg",
+        ".mpeg",
+        ".3gp"
       ],
       "dest": "Videos",
       "subfolders": [
@@ -252,7 +264,13 @@
         ".flac",
         ".aac",
         ".ogg",
-        ".m4a"
+        ".m4a",
+        ".opus",
+        ".aiff",
+        ".aif",
+        ".mid",
+        ".midi",
+        ".wma"
       ],
       "dest": "Audio",
       "subfolders": [
@@ -293,7 +311,11 @@
         ".txt",
         ".rtf",
         ".odt",
-        ".md"
+        ".md",
+        ".xlsb",
+        ".docm",
+        ".dotx",
+        ".pptm"
       ],
       "dest": "Documents",
       "subfolders": [
@@ -365,9 +387,43 @@
         ".v",
         ".vhd",
         ".asm",
-        ".ipynb"
+        ".ipynb",
+        ".html",
+        ".htm",
+        ".css",
+        ".scss",
+        ".cs",
+        ".go",
+        ".rs",
+        ".php",
+        ".rb",
+        ".swift",
+        ".kt",
+        ".sql",
+        ".jsx",
+        ".tsx",
+        ".lua",
+        ".toml"
       ],
       "dest": "Code",
+      "subfolders": [
+        "extension"
+      ]
+    },
+    {
+      "name": "Firmware",
+      "extensions": [
+        ".hex",
+        ".bin",
+        ".elf",
+        ".map",
+        ".s19",
+        ".srec",
+        ".axf",
+        ".uf2",
+        ".lst"
+      ],
+      "dest": "Firmware",
       "subfolders": [
         "extension"
       ]
