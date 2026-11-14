@@ -1,0 +1,15 @@
+{
+  "name": "Photographer",
+  "description": "Photos (including RAW) and videos go into year and month folders, e.g. Images/2026/2026-03. Everything else as in Standard.",
+  "config": {
+    "topics": {}
+  },
+  "set_subfolders": {
+    "Images": [
+      "year-month"
+    ],
+    "Videos": [
+      "year-month"
+    ]
+  }
+}

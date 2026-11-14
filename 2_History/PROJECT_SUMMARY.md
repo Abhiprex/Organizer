@@ -1,4 +1,4 @@
-# Organizer - project summary (current version: 2.7.1)
+# Organizer - project summary (current version: 2.8)
 
 Use this as the knowledge/instructions document for the Claude Project. It says what the project is,
 what exists, how it works, what was tested, what is NOT proven, and what is planned.
@@ -15,7 +15,7 @@ in simulation and need a first real run. He prefers short answers when tokens ar
 files (always a zip plus key files), and low-risk behaviour that needs little experimenting.
 
 ## 2. The deliverable
-`Organizer_2.7.1.zip` -> unzip to a permanent folder (e.g. D:\Organizer_2.7.1). Layout: `1_Project` (program files; run `install.bat` there), `2_History` (CHANGELOG, TEST_RESULTS, this summary), `3_Possible_Updates` (UPDATES_PLAN, TODO).
+`Organizer_2.8.zip` -> unzip to a permanent folder (e.g. D:\Organizer_2.8). Layout: `1_Project` (program files; run `install.bat` there), `2_History` (CHANGELOG, TEST_RESULTS, this summary), `3_Possible_Updates` (UPDATES_PLAN, TODO).
 
 | File | Purpose |
 |---|---|
@@ -27,6 +27,10 @@ files (always a zip plus key files), and low-risk behaviour that needs little ex
 | install.bat uninstall.bat folders.bat doctor.bat snooze.bat resume.bat space.bat repair.bat | double-click helpers (CRLF line endings) |
 | README.txt | user guide (CRLF) |
 | TODO.txt | ideas not built yet |
+| organizer_app.py | the desktop window + tray icon (app.bat) |
+| app_backend.py | all the logic behind the window (no screen needed, fully tested) |
+| presets/*.json | 7 ready-made ways of organizing |
+| app.bat build_exe.bat | start the app / build dist\Organizer\Organizer.exe |
 
 First steps on the real PC: `install.bat`, then `doctor.bat`; if anything shows [X], run `repair.bat`,
 and if still stuck use repair.bat option 5 (support report) and send the report.
@@ -58,6 +62,7 @@ and if still stuck use repair.bat option 5 (support report) and send the report.
   "Documents (folder)"); error flood limiter + stop-early circuit breaker; undo records written after EVERY move so a
   crash/kill/Ctrl+C can still be undone.
 - **2.7.1 (test-driven fixes)**: crash lock freed by process check; undo record written BEFORE each move; slow-regex guard; future-dated files organized; long-name clash shortened; odd names safe in the log; vanished files skipped; permission errors worded correctly; damaged history warning; `~$*` ignored; Makefile sorted; many new types + Firmware folder; dotless extensions fixed; rule destinations must stay inside the folder (`allow_outside` to override); read-only Organizer folder stops clearly; undo/--clean-empty remove empty folders; logging never fatal.
+- **2.8 (desktop app)**: window with tabs Organize / History / My Rules / Dashboard / Settings; tray icon when `pystray` + `pillow` are installed; presets (Standard, Standard + year folders, Student, Office / Work, Photographer, Embedded engineer, Minimal); per-user data folder (`%APPDATA%\Organizer`: organizer_config.json, history/, app_settings.json) so many users can share one install; export/import settings; start-with-Windows (a .vbs in the Startup folder); optional background tidy timer; `build_exe.bat` (PyInstaller, onedir). Rules in the editor can only point inside the organized folder. One setup for everything: settings and history live in the user's data folder (`%APPDATA%\\Organizer`; override with `ORGANIZER_HOME`; `portable.txt` or `ORGANIZER_PORTABLE=1` = old layout next to the program); the app, command line, folders.bat, repair and the scheduled task all use it. Launcher: `organizer_app.py` (`--selftest`, crash file `startup_error.txt`, one-copy lock `app.lock`) starts `app_window.py`.
 
 ## 4. Key settings (organizer_config.json)
 source "." (the folder you run from) | recursive false | min_age_seconds 30 | schedule_minutes 30 | subfolders [] |
@@ -80,7 +85,7 @@ folder > next to the script. Plain `python organizer.py` = "this folder"; `--all
 - Files are MOVED, never deleted or overwritten (overwrite mode keeps a backup). Every move is recorded.
 - History: `history/<folder>_<hash>.jsonl` (undo records, written after every move), `runs.jsonl` (one line per real
   run, used by doctor), `paused.json`, `organizer.log` (rotating, dated), `*.lock` (stale after 15 min),
-  `backups/` (repair tool). History lives next to the script, never inside organized folders.
+  `backups/` (repair tool). History lives in the user's data folder (see 2.8), never inside organized folders.
 - Moves use a rename; cross-drive uses copy+verify+delete; a locked file is left alone and retried (never half-copied).
 - Folders are moved as one unit only when idle 24 h; venvs/node_modules/projects are protected; recursive mode leaves
   projects whole; the Organizer folder itself is never touched.
@@ -108,11 +113,13 @@ need a "(1)" rename, non-UTF-8 names, permission-denied files/folders, read-only
 
 **2.7.1 re-test**: 450+ extra tests (simple/medium/hard, incl. random chaos folders, kills, parallel runs, 20k files) all pass or are explained test mistakes; see 2_History/TEST_RESULTS.md. Windows-only items above are STILL not proven.
 
+**2.8 testing**: app_backend.py has 38 automated tests (every preset, rules editor and its error messages, history/undo, two-user isolation, import/export, pause, dashboard). The window code was clicked through with a fake Tkinter (49 checks) because the sandbox has no screen. NOT proven: the real window on Windows (layout, fonts, sizes), the real tray icon, `start with Windows`, and the built .exe.
+
 ## 8. Known limitations
 Automatic task only runs while the user is logged on. "Old file" ages use modified/arrival time. Moving a project
 folder can break things that remember its path (IDE recents) - ignore list or `folders.enabled:false`. Suggestions are
 name-based guesses (may suggest the user's own name). Topic matching is by whole words in file names. A generic
-README.md can belong to only one custom folder. No GUI yet (menus are text). No .exe build (bat files use Python).
+README.md can belong to only one custom folder. The desktop app is new and untested on a real screen; the .exe must be built on Windows with build_exe.bat.
 
 ## 9. Roadmap / TODO (see TODO.txt)
 1. Report-only scan of a whole folder/drive (plan first, nothing moves until approved).

@@ -1,5 +1,28 @@
-ORGANIZER 2.7.1 - quick guide
-=============================
+ORGANIZER 2.8 - quick guide
+===========================
+
+NEW IN 2.8: THE DESKTOP APP
+---------------------------
+Double-click app.bat. You get a window with five tabs:
+  Organize   pick a folder, press Preview to see what would move, then Organize now (with one-click undo).
+  History    every run, the files in it, undo a run or put single files back.
+  My Rules   change the sorting rules, topics, ignore list and watched folders; test 'where would this file go?'.
+  Dashboard  health check, space report, duplicates, pause / resume, recent runs.
+  Settings   choose a way of organizing (Standard, by year, Student, Office, Photographer, Embedded engineer,
+             Minimal), options, export / import your settings, start with Windows, background tidying.
+Everyone who logs in to the PC gets their own settings and undo history (in %APPDATA%\Organizer), so several
+people can use one copy and each organize their own way. Share a setup with a friend via Export / Import.
+Tray icon: run  pip install pystray pillow  once. Then closing the window keeps Organizer in the tray; right-click
+the icon to organize now, pause, resume or quit. Without those two packages the app works as a normal window.
+Want a real .exe? Double-click build_exe.bat (needs internet once). It creates dist\Organizer\Organizer.exe.
+ONE SHARED SETUP: the window, the command line, folders.bat and the background task all use the SAME settings
+and the SAME undo history, stored in your own folder (%APPDATA%\Organizer). So whatever the background task moves,
+the app can undo - and a rule you add in the app is used by the task. Each Windows user has their own.
+Old 'everything next to the program' layout (for a USB stick): create an empty file called portable.txt next to organizer.py.
+Window does not open? Double-click selftest.bat - it checks Python, Tkinter and your folders and says what to fix.
+If the app cannot start it writes the reason to %APPDATA%\Organizer\startup_error.txt instead of just disappearing.
+The app has NOT yet been run on a real Windows screen - see 2_History\TEST_RESULTS.md for what was tested.
+
 
 NEW IN 2.7.1 (fixes found by 300+ extra tests)
 ----------------------------------------------

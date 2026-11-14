@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Organizer 2.7.1 - manage your folders, topics, watched folders and clean-up (no JSON editing needed)
+Organizer 2.8 - manage your folders, topics, watched folders and clean-up (no JSON editing needed)
 
 Use it to send SPECIFIC files (for example everything that belongs to one project: its
 README, .bat, .xml and .exe files) to a folder of your choice, instead of the common
@@ -63,7 +63,19 @@ import tempfile
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-DEFAULT_CONFIG = HERE / "organizer_config.json"
+
+
+def _default_config():
+    """The settings file in use (per-user, shared with the app and the scheduled task)."""
+    try:
+        sys.path.insert(0, str(HERE))
+        import organizer
+        return organizer.ensure_user_config()
+    except Exception:
+        return HERE / "organizer_config.json"
+
+
+DEFAULT_CONFIG = _default_config()
 BAD_NAME_CHARS = set('\\/:*?"<>|')
 BAD_PATH_CHARS = set('*?"<>|')
 
@@ -661,7 +673,7 @@ def menu_unknown(cfg, path):
 
 
 def menu(cfg, path):
-    print("\n=== Organizer 2.7.1 - my folders ===")
+    print("\n=== Organizer 2.8 - my folders ===")
     print(f"Settings file: {path}")
     while True:
         print("""
@@ -757,7 +769,7 @@ def menu(cfg, path):
 # --------------------------------------------------------------------------- #
 def main():
     parser = argparse.ArgumentParser(description="Manage your own Organizer folders.")
-    parser.add_argument("-c", "--config", help="config file (default: organizer_config.json next to this script)")
+    parser.add_argument("-c", "--config", help="config file (default: your own settings file, shared with the app)")
     sub = parser.add_subparsers(dest="command")
     sub.add_parser("list")
     add = sub.add_parser("add")

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Organizer 2.7.1 - repair tool  (double-click repair.bat)
+Organizer 2.8 - repair tool  (double-click repair.bat)
 
 Looks for everything that commonly goes wrong and fixes what it safely can. Whatever it
 changes is backed up first (history\\backups), and it never touches your organized files.
@@ -38,12 +38,29 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-CONFIG = HERE / "organizer_config.json"
-HISTORY = HERE / "history"
+
+
+def data_dir():
+    """Same rule as organizer.default_data_dir() (kept separate so repair works even if organizer.py is damaged)."""
+    override = os.environ.get("ORGANIZER_HOME")
+    if override:
+        return Path(override)
+    if os.environ.get("ORGANIZER_PORTABLE") or (HERE / "portable.txt").exists():
+        return HERE
+    if sys.platform.startswith("win"):
+        return Path(os.environ.get("APPDATA") or Path.home()) / "Organizer"
+    if sys.platform == "darwin":
+        return Path.home() / "Library" / "Application Support" / "Organizer"
+    return Path(os.environ.get("XDG_DATA_HOME") or Path.home() / ".local" / "share") / "organizer"
+
+
+_USER_CONFIG = data_dir() / "organizer_config.json"
+CONFIG = _USER_CONFIG if _USER_CONFIG.exists() else HERE / "organizer_config.json"
+HISTORY = data_dir() / "history"
 BACKUPS = HISTORY / "backups"
-PY_FILES = ["organizer.py", "manage_folders.py", "setup_windows.py", "repair.py"]
+PY_FILES = ["organizer.py", "manage_folders.py", "setup_windows.py", "repair.py", "app_backend.py", "app_window.py", "organizer_app.py"]
 BAT_FILES = ["install.bat", "uninstall.bat", "folders.bat", "doctor.bat", "snooze.bat", "resume.bat",
-             "space.bat", "repair.bat"]
+             "space.bat", "repair.bat", "app.bat", "selftest.bat", "build_exe.bat"]
 UNZIP_HINT = ("unzip the newest Organizer zip over this folder "
               "(keep your organizer_config.json and the history folder)")
 
@@ -739,7 +756,7 @@ def cmd_report():
 # Menu and command line
 # --------------------------------------------------------------------------- #
 def menu():
-    print("=== Organizer 2.7.1 - repair ===")
+    print("=== Organizer 2.8 - repair ===")
     while True:
         print("""
  1) Check and repair everything (recommended)

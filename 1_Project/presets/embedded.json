@@ -1,0 +1,41 @@
+{
+  "name": "Embedded engineer",
+  "description": "Standard plus topic folders for RTOS, IoT, ARM, RISC-V, microcontrollers and your resume, and a Firmware folder for hex/bin/elf files.",
+  "config": {
+    "topics": {
+      "RTOS": [
+        "rtos",
+        "freertos",
+        "zephyr"
+      ],
+      "IoT": [
+        "iot",
+        "mqtt",
+        "internet of things",
+        "esp32"
+      ],
+      "ARM": [
+        "arm",
+        "cortex",
+        "thumb",
+        "stm32"
+      ],
+      "RISC-V": [
+        "risc v",
+        "riscv",
+        "risc"
+      ],
+      "Microcontrollers": [
+        "microcontroller",
+        "8051",
+        "avr",
+        "atmega"
+      ],
+      "Resume": [
+        "resume",
+        "cv",
+        "curriculum vitae"
+      ]
+    }
+  }
+}

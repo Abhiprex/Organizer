@@ -1,5 +1,15 @@
 # Organizer - possible updates
 
+## 0. Done in 2.8: the desktop app (see CHANGELOG). First thing to do: run app.bat on Windows and send a screenshot or the error text of anything that looks wrong.
+
+### App ideas for next time
+- (done in 2.8) one shared history and settings for the app, command line and scheduled task
+- Make the shipped default settings generic (the sample topics RTOS / IoT / ARM are the author's own; they live in the 'Embedded engineer' preset)
+- Drag a folder onto the window; progress bar with file count; light/dark theme
+- Rule wizard ("files from this website", "files bigger than..."), a preview of the folder tree after organizing
+- A 'Family / shared PC' setup guide; update check; localized text (Hindi, Marathi)
+- Windows notifications after a run; right-click menu entry that opens the app on that folder
+
 ## A. Done in 2.7.1 (all 20 test findings fixed, see 2_History/TEST_RESULTS.md)
 Bad regex hang, Makefile, 255-char clash, future dates, odd names in the log, vanishing files, permission wording,
 damaged-history warning, ~$ temp files, small items (undo id message, empty folders after undo, manage_folders without

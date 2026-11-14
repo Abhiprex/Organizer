@@ -12,6 +12,7 @@
 | 2.6 | Unknown file types go to Other/<EXT> automatically; odd and reserved Windows names stay loose |
 | 2.7 | Stress-test hardening: file named like a destination folder, error-flood limiter, undo records saved after EVERY move |
 | 2.7.1 | Fixes for 20 problems found by 450+ extra tests: crash lock freed, undo saved BEFORE each move, slow-regex guard, future dates, long-name clashes, odd file names in the log, vanished files, permission messages, damaged history warning, ~$ temp files, Makefile, many new file types + Firmware folder, rules without a dot, rule destinations kept inside the folder, read-only Organizer folder message, undo/--clean-empty tidy empty folders, logging never fatal |
+| 2.8 | Desktop app (app.bat): window with Organize / History / My Rules / Dashboard / Settings tabs, tray icon (optional pystray + pillow), 7 ready-made ways of organizing (presets), per-user settings and history in %APPDATA%\Organizer, export / import of settings, start with Windows, background tidying, build_exe.bat to make Organizer.exe. One shared per-user setup: the app, the command line, folders.bat, repair and the scheduled task use the same settings, pause switch and undo history (old history is copied over once; portable.txt keeps the old layout). selftest.bat + startup_error.txt, one-copy check, high-DPI text. Engine otherwise unchanged |
 
 Rule for every release: bump the version in ALL .py files and the README, keep .bat and README in CRLF,
 run the regression + test suites, package as Organizer_X.Y.zip.

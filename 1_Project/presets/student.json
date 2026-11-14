@@ -1,0 +1,35 @@
+{
+  "name": "Student",
+  "description": "Documents are grouped by what they are about: Assignments, Lecture Notes, Exams, Projects (by words in the file name), then by type.",
+  "config": {
+    "topics": {
+      "Assignments": [
+        "assignment",
+        "homework",
+        "hw",
+        "lab",
+        "worksheet"
+      ],
+      "Lecture Notes": [
+        "lecture",
+        "notes",
+        "slides",
+        "syllabus",
+        "chapter"
+      ],
+      "Exams": [
+        "exam",
+        "quiz",
+        "midterm",
+        "question paper",
+        "mock test"
+      ],
+      "Projects": [
+        "project",
+        "report",
+        "thesis",
+        "seminar"
+      ]
+    }
+  }
+}

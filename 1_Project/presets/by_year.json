@@ -1,0 +1,22 @@
+{
+  "name": "Standard + year folders",
+  "description": "Same as Standard, but Documents, Images, Videos and Audio get a folder per year (Images/2026/...). Good if you keep things for a long time.",
+  "config": {
+    "topics": {}
+  },
+  "set_subfolders": {
+    "Documents": [
+      "year",
+      "extension"
+    ],
+    "Images": [
+      "year"
+    ],
+    "Videos": [
+      "year"
+    ],
+    "Audio": [
+      "year"
+    ]
+  }
+}

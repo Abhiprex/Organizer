@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Organizer 2.7.1 (organizer.py) - a configurable, cross-platform folder organizer (stdlib only).
+Organizer 2.8 (organizer.py) - a configurable, cross-platform folder organizer (stdlib only).
 
 Features
   * Rule-based sorting: extension, filename glob, regex, file size
@@ -73,10 +73,12 @@ from collections import Counter, defaultdict
 from datetime import datetime, timedelta
 from pathlib import Path
 
-__version__ = "2.7.1"
+__version__ = "2.8"
 
 HISTORY_FILE = ".organizer_history.jsonl"   # legacy location (inside the organized folder)
-SCRIPT_DIR = Path(__file__).resolve().parent
+SCRIPT_DIR = (Path(sys.executable).resolve().parent if getattr(sys, "frozen", False)
+              else Path(__file__).resolve().parent)       # a built .exe keeps its files next to itself
+DATA_DIR = None        # the desktop app sets this to a per-user folder so several users never share history
 SKIP_DIR_NAMES = {"System Volume Information", "node_modules", "__pycache__", "venv", ".venv"}
 # A folder counts as a "project" if it has any STRONG marker, or two or more WEAK ones.
 # (A single downloaded Makefile or requirements.txt in Downloads is NOT a project.)
@@ -194,17 +196,78 @@ log = logging.getLogger("organizer")
 
 
 # --------------------------------------------------------------------------- #
-# History (kept in <Organizer folder>/history, never inside the folders you organize)
+# History (kept in your private data folder, never inside the folders you organize)
 # --------------------------------------------------------------------------- #
+def default_data_dir():
+    """Where one person's settings and undo history live.
+
+    Normally a private per-user folder (Windows: %APPDATA%\\Organizer), so everyone who uses the PC has their own
+    and the command line, the scheduled task and the desktop app all share the SAME settings and history.
+    Old "everything next to the program" layout: create a file called portable.txt next to organizer.py
+    (handy for a USB stick) or set ORGANIZER_PORTABLE=1.  ORGANIZER_HOME=<folder> chooses any folder.
+    """
+    override = os.environ.get("ORGANIZER_HOME")
+    if override:
+        return Path(override)
+    if os.environ.get("ORGANIZER_PORTABLE") or (SCRIPT_DIR / "portable.txt").exists():
+        return SCRIPT_DIR
+    if sys.platform.startswith("win"):
+        return Path(os.environ.get("APPDATA") or Path.home()) / "Organizer"
+    if sys.platform == "darwin":
+        return Path.home() / "Library" / "Application Support" / "Organizer"
+    return Path(os.environ.get("XDG_DATA_HOME") or Path.home() / ".local" / "share") / "organizer"
+
+
+def data_dir():
+    return Path(DATA_DIR) if DATA_DIR else default_data_dir()
+
+
+def active_config_path():
+    return data_dir() / DEFAULT_CONFIG_NAME
+
+
+def ensure_user_config():
+    """The settings file in use. On first use in per-user mode it starts as a copy of the shipped settings."""
+    path = active_config_path()
+    shipped = SCRIPT_DIR / DEFAULT_CONFIG_NAME
+    if path.exists() or path == shipped:
+        return path
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        if shipped.exists():
+            shutil.copy2(shipped, path)
+            return path
+    except OSError:
+        pass
+    return shipped
+
+
+def _migrate_old_history(new_dir):
+    """Undo history made by older versions (next to the program) is copied over once."""
+    old = SCRIPT_DIR / "history"
+    marker = new_dir / ".migrated"
+    try:
+        if new_dir == old or marker.exists() or not old.is_dir():
+            return
+        for item in old.glob("*.jsonl"):
+            if not (new_dir / item.name).exists():
+                shutil.copy2(item, new_dir / item.name)
+        marker.write_text("copied from " + str(old))
+    except OSError:
+        pass
+
+
 @functools.lru_cache(maxsize=1)
 def history_dir():
-    """<folder of this script>/history, or ~/Organizer/history if that is not writable."""
-    for candidate in (SCRIPT_DIR / "history", Path.home() / "Organizer" / "history"):
+    """<data folder>/history (per user), or ~/Organizer/history if that is not writable."""
+    candidates = [data_dir() / "history", Path.home() / "Organizer" / "history"]
+    for candidate in candidates:
         try:
             candidate.mkdir(parents=True, exist_ok=True)
             probe = candidate / ".write_test"
             probe.write_text("ok")
             probe.unlink()
+            _migrate_old_history(candidate)
             return candidate
         except OSError:
             continue
@@ -240,16 +303,19 @@ def migrate_legacy_history(base):
 # Config
 # --------------------------------------------------------------------------- #
 def find_config(explicit):
-    """-c file > organizer_config.json in the target folder > next to the script."""
+    """-c file > organizer_config.json in the current folder (not the program folder) > the settings in use
+    (your private per-user settings, shared with the app and the scheduled task)."""
     if explicit:
         p = Path(explicit).expanduser()
         if not p.exists():
             sys.exit(f"Config file not found: {p}")
         return p, True
-    for folder in (Path.cwd(), Path(__file__).resolve().parent):
-        candidate = folder / DEFAULT_CONFIG_NAME
-        if candidate.exists():
-            return candidate, False
+    here = Path.cwd()
+    if here.resolve() != SCRIPT_DIR.resolve() and (here / DEFAULT_CONFIG_NAME).exists():
+        return here / DEFAULT_CONFIG_NAME, False
+    path = ensure_user_config()
+    if path.exists():
+        return path, False
     return None, False
 
 
@@ -790,6 +856,9 @@ def protected_dirs(cfg, base):
             pass
     if SCRIPT_DIR != base.resolve() and _inside(SCRIPT_DIR, base.resolve()):
         dirs.add(SCRIPT_DIR)  # the Organizer folder (script, config, history) is never touched
+    mine = data_dir()
+    if mine != SCRIPT_DIR and mine != base.resolve() and _inside(mine, base.resolve()):
+        dirs.add(mine)        # the folder with my settings and history is never touched either
     return dirs
 
 
@@ -1367,6 +1436,9 @@ def scan_files(base, cfg, extra_skip=()):
     skip.update(Path(path).resolve() for path in extra_skip)
     if SCRIPT_DIR != base and _inside(SCRIPT_DIR, base):
         skip.add(SCRIPT_DIR)
+    mine = data_dir()
+    if mine != SCRIPT_DIR and mine != base and _inside(mine, base):
+        skip.add(mine)
     stack = [base]
     while stack:
         current = stack.pop()
@@ -1966,7 +2038,7 @@ def run_doctor(cfg, full=True):
         r.ok(f"settings: {config_file or 'built-in defaults (no organizer_config.json found)'}")
         if history_dir() is None:
             r.bad("no writable history folder, so undo and this check cannot work",
-                  f"make {SCRIPT_DIR / 'history'} writable")
+                  f"make {data_dir() / 'history'} writable")
         else:
             r.ok(f"history folder: {history_dir()}")
 

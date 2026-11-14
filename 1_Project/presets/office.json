@@ -1,0 +1,40 @@
+{
+  "name": "Office / Work",
+  "description": "Documents are grouped by Invoices, Contracts, Reports and Meetings (by words in the file name), then by type.",
+  "config": {
+    "topics": {
+      "Invoices": [
+        "invoice",
+        "bill",
+        "receipt",
+        "payment",
+        "purchase order"
+      ],
+      "Contracts": [
+        "contract",
+        "agreement",
+        "nda",
+        "offer letter",
+        "terms"
+      ],
+      "Reports": [
+        "report",
+        "summary",
+        "review",
+        "analysis",
+        "budget"
+      ],
+      "Meetings": [
+        "minutes",
+        "agenda",
+        "meeting"
+      ]
+    }
+  },
+  "set_subfolders": {
+    "Documents": [
+      "topic",
+      "extension"
+    ]
+  }
+}

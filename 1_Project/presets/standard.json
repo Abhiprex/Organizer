@@ -1,0 +1,7 @@
+{
+  "name": "Standard",
+  "description": "Sorts by type: Documents, Images, Videos, Audio, Code, Archives, Installers, Firmware. Anything unknown goes to Other. A good start for everyone.",
+  "config": {
+    "topics": {}
+  }
+}

@@ -679,3 +679,61 @@ All fixes were written, then EVERY earlier suite was run again against 2.7.1.
 | First 60 tests (simple/medium/hard) | see above | 54 / 60 | 6 are old test-setup mistakes (version text now 2.7.1, history needs a folder, project marker, 3+ photos) plus an undo test that now shows a warning instead of silently skipping |
 
 Result: no real failure is left in anything we can test on Linux. NOT proven (needs a real Windows PC): scheduled-task XML, right-click menu, .bat helpers, case-insensitive clashes, 260-character paths, Notepad/PowerShell encodings, OneDrive Downloads, full disk, and the Windows version of the "is the old run still alive" check.
+
+
+---
+# VERSION 2.8 (desktop app) TESTS (12 Nov 2026)
+
+## 1. App logic (app_backend.py): 38 / 38 PASS  (2_History/test_scripts/test_backend.py)
+First run and settings file; all 7 ways of organizing (each one sorts a sample folder as described); switching way keeps watched folders and ignore list; unknown way explained; "where would this file go"; sorting rules add / edit / turn off / move / delete; 10 kinds of bad rule explained and not saved (empty name, nothing to match, no folder, C:\ or / or ../ folders, slow regex, broken regex, unknown sub-folder, bad size); extensions get a dot; topics; options; watched folders; preview vs real run; fresh-file tip; project folder refused / "organize anyway"; missing and system folders refused; history list, details, undo, restore one file, undo one chosen run; TWO USERS keep separate settings and separate history; export / import settings (bad files rejected); damaged settings message + reset keeps backup; Notepad (BOM) settings; health, space, duplicates, set aside; pause (automatic waits, own run goes ahead), resume, bad pause text; recent runs; organize all watched folders; start-with-Windows file written and removed; odd file names; slow regex cannot freeze a run.
+
+## 2. Window code clicked through with a fake Tkinter: 49 / 49 PASS  (test_ui.py + fake_tk.py)
+First-run wizard, all five tabs, preview -> organize -> history -> undo / restore, rules dialog results, topics, ignore list, watched folders, dashboard buttons, pause / resume, presets, options (bad number explained), background timer, start-with-Windows message on non-Windows, export / import / reset, errors shown as messages (missing folder), "organize anyway" prompt for a project folder (this found and fixed an endless prompt loop), numeric-looking file names and run ids stay exact, tray menu (5 entries, organize, pause, resume, close-to-tray hint once, quit) with a pretend pystray.
+Bugs found by these tests and fixed before release: the endless "organize anyway" prompt; the history run ids / file names that Tk would have turned into numbers (e.g. 00123456); a shared history folder when switching users in one process; "/folder" typed as a rule destination was silently treated as relative.
+
+## 3. Engine regression on 2.8 (the engine changed only for the per-user data folder and exe-friendly paths)
+| Suite | Result |
+|---|---|
+| 2.7.1 fix checks (23) | 22 / 23 (the 1 is the known test-setup artifact: a log file owned by another user) |
+| First 60 tests | same as 2.7.1 (the 6 known test-setup mistakes) |
+| Batch 2 simple + medium (100) | 100 / 100 |
+| Batch 2 hard (53) | 53 / 53 |
+| Batch 3 simple (102) | 99 / 102 (.epub, .psd, .ai have their own folders) |
+| Batch 3 hard: kills / chaos / names (45) | 45 / 45 |
+| Batch 3 hard: parallel / scale / live changes (55) | 54 / 55 (known test artifact) |
+| Batch 3 medium (99) | not re-run (nothing it covers changed) |
+
+## NOT proven (needs a real Windows PC and screen)
+How the window looks (sizes, fonts, layout), the real tray icon, start-with-Windows, building the .exe with build_exe.bat, and everything listed earlier (scheduled task, right-click menu, long paths, OneDrive Downloads...). If the window shows an error, the text is also written to %APPDATA%\Organizer\history\organizer.log.
+
+
+---
+# BATCH 4 (13 Nov 2026): app logic at scale, 184 tests, 184 / 184 PASS  (tests/stress/b4.py)
+| Group | Tests | Result |
+|---|---|---|
+| A. Every way of organizing x 14 file types (7 x 14): preview shows the file, a real run moves it with 0 errors, undo puts it back exactly | 98 | 98 / 98 |
+| B. Rules editor: 10 random valid rules are saved, listed, read back and really route a file; 10 invalid rules (../ and C:\ and / and ~ folders, empty name, nothing to match, slow regex, broken regex, unknown sub-folder, a/../../b) are rejected and the settings file is byte-for-byte unchanged | 20 | 20 / 20 |
+| C. Pause text: 30m, 1h, 2h, 1d, forever, 5m accepted; abc, empty, -5, 1x refused with a message | 10 | 10 / 10 |
+| D. History: 12 separate runs undone in random order (10 different orders): every file back, history empty | 10 | 10 / 10 |
+| E. 2, 3, 4, 6 and 8 different users running at the same time (separate processes): each organizes 30 files and sees only their own history | 5 | 5 / 5 |
+| F. "Where would this file go?" for 40 names (RAW, .tar.gz, no extension, Japanese, emoji, Makefile...) answers every time and creates no stray files | 41 | 41 / 41 |
+One mistake in my own first version of group B (a name pattern that cannot match a name with an extension) was fixed in the test, not in the program.
+
+
+---
+# VERSION 2.8 - SHARED SETUP + STARTUP SAFETY (14 Nov 2026)
+## New automated tests: 21 (all pass; part of the 77 in tests/)
+- **Launcher (6):** the self-test prints a plain report and saves it; running it twice changes nothing; a crash leaves startup_error.txt instead of vanishing; a second copy is refused while the first is alive; a leftover lock from a crash does not block start; the lock is released at exit.
+- **Shared setup (15):** a run made in the app shows in the command line history and can be undone there (and the other way round); the scheduled task (`--all --scheduled`) follows the watched folders AND the rules set in the app and its runs can be undone in the app; pause set in the app stops the task but not a manual run; pause / resume from the command line show in the app; `manage_folders.py watch-add` edits the same settings as the app; `--doctor` and `repair.py --check` use the per-user folder; two users never see each other's history; history made by an older version next to the program is copied once and stays undoable; `portable.txt` keeps everything next to the program; the first command-line run creates the user's own settings copy; an existing watch setup is kept when the app starts first; a fresh user gets the first-run choice.
+- Bug found and fixed by these tests: the app kept using the previous user's history folder when a second data folder was opened in the same process.
+## Regression of every earlier engine suite (about 630 tests), in BOTH layouts
+| Suite | Old layout (portable) | New per-user layout |
+|---|---|---|
+| Fix checks (23) | 22 / 23 (known test artifact) | same code path |
+| First 60 tests | same as before (6 known test mistakes) | not repeated (they read the old history path) |
+| Batch 2 (153) | 153 / 153 | 153 / 153 |
+| Batch 3 simple (102) | 99 / 102 (.epub .psd .ai have own folders) | 99 / 102 |
+| Batch 3 medium (99) | not repeated | 92 / 99 (the same 7 test mistakes as before) |
+| Batch 3 hard: kills, chaos, names (45) | 45 / 45 | 45 / 45 |
+| Batch 3 hard: parallel, scale, live changes (55) | 54 / 55 | 53 / 55 (+1 test that looks for the history file in the old place) |
+No regression. Windows-only items are still unproven (scheduled task XML, right-click menu, real window and tray, building the .exe, long paths, OneDrive Downloads).
